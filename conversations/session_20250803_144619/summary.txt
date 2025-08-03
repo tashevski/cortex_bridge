@@ -1,0 +1,17 @@
+Conversation Session: session_20250803_144619
+==================================================
+
+Start Time: 2025-08-03 14:46:19.043683
+End Time: 2025-08-03 14:47:01.202756
+Total Utterances: 6
+Speaker Count: 1
+Emotion Summary: Neutral: 2, Joy: 2, Fear: 1, Anger: 1
+
+Conversation Transcript:
+------------------------------
+[2025-08-03 14:46:26.476668] Speaker A: hello how are you going and just testing us to see if it's working (Neutral)
+[2025-08-03 14:46:31.595808] Speaker A: is it still working or are we getting the overflow issue (Neutral) [Q]
+[2025-08-03 14:46:38.140122] Speaker A: look i'm feeling really scared right now i don't know how feel i'm really worried (Fear)
+[2025-08-03 14:46:47.694325] Speaker A: i am so literally so excited i just i cannot express how happy i am (Joy)
+[2025-08-03 14:46:52.625827] Speaker A: i am euphoric (Joy)
+[2025-08-03 14:46:57.830401] Speaker A: i'm pretty pretty fucked up (Anger)

@@ -1,0 +1,68 @@
+{
+  "session_id": "session_20250803_151534",
+  "utterances": [
+    {
+      "timestamp": "2025-08-03T15:15:45.830232",
+      "speaker": "Speaker A",
+      "text": "and other time anthony kasha potential back on a boss that i couldn't believe or get a as fuck and head and their front don't be surprised poorly pop the question",
+      "emotion": "Surprise",
+      "emotion_confidence": 0.9824602603912354,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:15:48.303248",
+      "speaker": "Speaker A",
+      "text": "rafi system is rising",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.7432029247283936,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:15:51.552707",
+      "speaker": "Speaker A",
+      "text": "on those unions",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.7207195162773132,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:15:53.897507",
+      "speaker": "Speaker A",
+      "text": "poorly can communicate a case for us",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.5591736435890198,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:15:56.189261",
+      "speaker": "Speaker A",
+      "text": "of is a good own guy like that",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.6038074493408203,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:15:58.153379",
+      "speaker": "Speaker A",
+      "text": "those cannon",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.759149968624115,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T15:16:03.016693",
+      "speaker": "Speaker A",
+      "text": "who believe in our house a bullet jack ruby i am when of the punched",
+      "emotion": "Surprise",
+      "emotion_confidence": 0.7163750529289246,
+      "is_question": true,
+      "voice_count": 1
+    }
+  ]
+}

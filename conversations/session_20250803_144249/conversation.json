@@ -1,0 +1,41 @@
+{
+  "session_id": "session_20250803_144249",
+  "utterances": [
+    {
+      "timestamp": "2025-08-03T14:44:04.434476",
+      "speaker": "Speaker A",
+      "text": "see",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.5877721309661865,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:44:05.703531",
+      "speaker": "Speaker A",
+      "text": "it's",
+      "emotion": "Surprise",
+      "emotion_confidence": 0.4834941029548645,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:45:05.792079",
+      "speaker": "Speaker A",
+      "text": "kinda",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.6496751308441162,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:45:25.884449",
+      "speaker": "Speaker A",
+      "text": "see",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.5877721309661865,
+      "is_question": false,
+      "voice_count": 1
+    }
+  ]
+}

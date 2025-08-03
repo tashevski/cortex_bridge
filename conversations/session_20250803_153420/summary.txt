@@ -1,0 +1,15 @@
+Conversation Session: session_20250803_153420
+==================================================
+
+Start Time: 2025-08-03 15:34:20.497947
+End Time: 2025-08-03 15:34:37.822727
+Total Utterances: 4
+Speaker Count: 1
+Emotion Summary: Neutral: 2, Surprise: 1, Joy: 1
+
+Conversation Transcript:
+------------------------------
+[2025-08-03 15:34:24.009343] Speaker A: hello i'm testing the voice thing (Neutral)
+[2025-08-03 15:34:27.542364] Speaker A: this is pretty cool (Joy)
+[2025-08-03 15:34:30.742422] Speaker A: now i'm a different person (Surprise)
+[2025-08-03 15:34:34.558806] Speaker A: this isn't working at all (Neutral)

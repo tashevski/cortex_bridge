@@ -1,0 +1,20 @@
+Contextual Prompt for Session: test_session
+Generated: 2025-08-03T13:38:32.644096
+Type: emotional
+============================================================
+
+## Contextual Prompt: Joyful & Positive Interaction
+
+**Primary Emotional Themes:** The conversation is overwhelmingly positive, characterized by joy and enthusiasm. 
+
+**Emotional Triggers/Sensitive Topics:**  The conversation appears light and focused on pleasant topics (weather). No overtly sensitive topics are evident.
+
+**Emotional Expression:** Both speakers express positive emotions clearly, with high confidence scores indicating genuine feelings. Speaker A initiates the conversation with joy and expresses it with a "That's wonderful!" affirmation. Speaker B reciprocates with joy and enthusiasm.
+
+**Emotional Support Needs:**  The interaction is supportive and reciprocal. There's no indication of needing emotional support.
+
+**Mood Patterns & Changes:** The conversation maintains a consistently positive and upbeat mood throughout. 
+
+**Emotional Communication Preferences:** Both speakers favor direct and positive communication.  The interaction is concise and focused on sharing pleasant information.
+
+**Prompt:** "This conversation demonstrates a strong preference for positive and enthusiastic communication. Both speakers express joy and warmth.  Consider mirroring this positive energy in your responses and focusing on shared pleasantries.  If a more nuanced emotional response is needed, acknowledge the positive sentiment and offer a supportive and encouraging reply."

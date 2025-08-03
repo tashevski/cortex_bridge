@@ -1,0 +1,59 @@
+{
+  "session_id": "session_20250803_144619",
+  "utterances": [
+    {
+      "timestamp": "2025-08-03T14:46:26.476668",
+      "speaker": "Speaker A",
+      "text": "hello how are you going and just testing us to see if it's working",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.7548251748085022,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:46:31.595808",
+      "speaker": "Speaker A",
+      "text": "is it still working or are we getting the overflow issue",
+      "emotion": "Neutral",
+      "emotion_confidence": 0.7526419162750244,
+      "is_question": true,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:46:38.140122",
+      "speaker": "Speaker A",
+      "text": "look i'm feeling really scared right now i don't know how feel i'm really worried",
+      "emotion": "Fear",
+      "emotion_confidence": 0.9953258037567139,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:46:47.694325",
+      "speaker": "Speaker A",
+      "text": "i am so literally so excited i just i cannot express how happy i am",
+      "emotion": "Joy",
+      "emotion_confidence": 0.975569486618042,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:46:52.625827",
+      "speaker": "Speaker A",
+      "text": "i am euphoric",
+      "emotion": "Joy",
+      "emotion_confidence": 0.9911571741104126,
+      "is_question": false,
+      "voice_count": 1
+    },
+    {
+      "timestamp": "2025-08-03T14:46:57.830401",
+      "speaker": "Speaker A",
+      "text": "i'm pretty pretty fucked up",
+      "emotion": "Anger",
+      "emotion_confidence": 0.9820418953895569,
+      "is_question": false,
+      "voice_count": 1
+    }
+  ]
+}
