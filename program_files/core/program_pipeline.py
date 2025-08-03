@@ -9,6 +9,7 @@ from .conditional_gemma_input import ConditionalGemmaPipeline, CONDITIONS
 from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.gemma_client import GemmaClient
+from utils.utils import is_question
 
 # Load Vosk model
 print("Loading Vosk model...")
