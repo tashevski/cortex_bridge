@@ -9,12 +9,21 @@ This project provides offline real-time audio-to-text transcription capabilities
 - 🤖 **Voice-enabled AI chat** - Integrate with Gemma models for voice conversations
 - 🎯 **Smart silence detection** - Automatically trigger transcription on pauses
 - 🔒 **Privacy-focused** - All processing happens locally
+- 😊 **Emotion classification** - Detects specific emotions (anger, fear, joy, sadness, etc.)
+- ❓ **Question detection** - Automatic identification of questions
+- 🎤 **Voice Activity Detection (VAD)** - Real-time speech vs silence detection
+- 👤 **Speaker detection** - Identifies speaker changes and counts unique voices
+- 📝 **Conversation logging** - Stores all conversations with metadata in SQLite database
+- 🔍 **Semantic vectorization** - Vectorize conversations for advanced search and analysis
 
 ## Files
 
-- `transcriber.py` - **Offline** real-time audio transcription (Vosk - no internet required)
-- `simple_voice_gemma.py` - Voice-enabled chat with Gemma AI models
+- `transcriber.py` - **Offline** real-time audio transcription with emotion classification, VAD, and logging
+- `simple_voice_gemma.py` - Voice-enabled chat with Gemma AI models and conversation logging
 - `gemma_runner.py` - Original text-based Gemma interface
+- `conversation_logger.py` - Conversation logging and storage system
+- `conversation_viewer.py` - View and analyze conversation logs
+- `conversation_vectorizer.py` - Vectorize conversations for semantic search and analysis
 - `requirements.txt` - Python dependencies
 
 ## Prerequisites
@@ -80,6 +89,47 @@ python gemma_runner.py
 - `--image path/to/image.jpg` - Include image in conversation
 - `--template path/to/template.txt` - Use prompt template
 
+### 4. Conversation Log Management
+
+View and analyze your conversation logs:
+
+```bash
+# List all conversation sessions
+python conversation_viewer.py list
+
+# View detailed transcript of a session
+python conversation_viewer.py view --session session_20241201_143022
+
+# Analyze emotion patterns in a session
+python conversation_viewer.py analyze --session session_20241201_143022
+
+# Export session data
+python conversation_viewer.py export --session session_20241201_143022 --format json
+
+### 5. Conversation Vectorization and Semantic Search
+
+Vectorize your conversations for advanced search and analysis:
+
+```bash
+# Vectorize all conversation sessions
+python conversation_vectorizer.py vectorize
+
+# Vectorize a specific session
+python conversation_vectorizer.py vectorize --session session_20241201_143022
+
+# Semantic search across all conversations
+python conversation_vectorizer.py search --query "how are you feeling today"
+
+# Find utterances with specific emotions
+python conversation_vectorizer.py emotion --emotion joy --top-k 10
+
+# Analyze a specific speaker
+python conversation_vectorizer.py speaker --speaker "Speaker A" --top-k 10
+
+# View vectorization statistics
+python conversation_vectorizer.py stats
+```
+
 ## How It Works
 
 ### Audio Transcription Flow
@@ -89,14 +139,22 @@ python gemma_runner.py
 3. **Buffer Management**: Maintains a rolling buffer of recent audio
 4. **Transcription Trigger**: When silence is detected, processes the audio buffer
 5. **Speech Recognition**: Uses Vosk (offline) to convert audio to text
-6. **Real-time Output**: Displays transcribed text immediately
+6. **Voice Analysis**: VAD and speaker detection
+7. **Text Analysis**: Analyzes emotions and detects questions
+8. **Conversation Logging**: Stores all data in SQLite database and JSON files
+9. **Vectorization**: Creates semantic embeddings for advanced search capabilities
+10. **Real-time Output**: Displays transcribed text with speaker, emotion, and question indicators
 
 ### Voice Chat Flow
 
 1. **Audio Transcription**: Captures and transcribes your speech
-2. **Text Processing**: Sends transcribed text to Gemma model
-3. **AI Response**: Receives and displays Gemma's response
-4. **Continuous Loop**: Repeats for natural conversation flow
+2. **Voice Analysis**: VAD and speaker detection
+3. **Text Analysis**: Analyzes emotions and detects questions
+4. **Text Processing**: Sends transcribed text to Gemma model
+5. **AI Response**: Receives and displays Gemma's response
+6. **Conversation Logging**: Stores all data in SQLite database and JSON files
+7. **Vectorization**: Creates semantic embeddings for advanced search capabilities
+8. **Continuous Loop**: Repeats for natural conversation flow
 
 ## Configuration
 

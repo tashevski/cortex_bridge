@@ -1,0 +1,16 @@
+Conversation Session: test_session
+==================================================
+
+Start Time: 2025-08-03 12:46:09.412212
+End Time: 2025-08-03 12:46:09.416567
+Total Utterances: 5
+Speaker Count: 2
+Emotion Summary: joy: 4, neutral: 1
+
+Conversation Transcript:
+------------------------------
+[2025-08-03 12:46:09.412992] Speaker A: Hello, how are you today? (joy) [Q]
+[2025-08-03 12:46:09.413779] Speaker B: I'm doing great, thanks! (joy)
+[2025-08-03 12:46:09.414553] Speaker A: What's the weather like? (neutral) [Q]
+[2025-08-03 12:46:09.415211] Speaker B: It's sunny and warm! (joy)
+[2025-08-03 12:46:09.415922] Speaker A: That's wonderful! (joy)
