@@ -30,8 +30,8 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
     """Process transcribed text based on conversation state"""
     
     if conversation_manager.waiting_for_feedback:
-        feedback = {"helpful": "unknown"}
         text_lower = text.lower().strip()
+        feedback = {"helpful": "unknown"}
         
         if text_lower in ['yes', 'y', 'helpful']:
             feedback["helpful"] = True
@@ -108,10 +108,24 @@ def main():
                        input=True, frames_per_buffer=2048)
     stream.start_stream()
     
-    # Track partial results and speaker for change detection
+    # Track speaker changes for message segmentation
     partial_text = ""
     current_speaker_for_text = speaker_detector.current_speaker
     frames_with_same_speaker = 0
+    
+    def process_message(text, speaker):
+        """Process a complete message"""
+        print(f"📝 {text}")
+        known_speakers = speaker_detector.get_known_speakers()
+        speaker_info = f"👤 {speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)"
+        if known_speakers:
+            speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
+        print(f"   {speaker_info}")
+        
+        audio_features = speaker_detector.get_current_features()
+        process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features)
+        if audio_features:
+            speaker_detector.clear_feature_buffer()
     
     try:
         while True:
@@ -123,42 +137,26 @@ def main():
                 print(f"Audio error: {e}")
                 break
             
+            # Process speech and speaker detection
             is_speech = speech_processor.process_frame(data)
             if is_speech:
                 speaker_detector.update_speaker_count(data, speech_processor.silence_frames)
             
-            # Get partial results to track ongoing speech
+            # Track partial results for speaker change detection
             partial_result = json.loads(rec.PartialResult())
             new_partial_text = partial_result.get('partial', '').strip()
-            
-            # Update partial text if there's new content
             if new_partial_text:
                 partial_text = new_partial_text
             
-            # Check if speaker changed after consistent detection
+            # Check for speaker change based message segmentation
             if speaker_detector.current_speaker != current_speaker_for_text:
                 frames_with_same_speaker += 1
-                # After 30 frames (~1.8 seconds) of consistent new speaker with partial text
                 if frames_with_same_speaker >= 30 and partial_text and len(partial_text) > 5:
-                    # Process the text from the previous speaker
-                    print(f"📝 {partial_text}")
-                    speaker_info = f"👤 {current_speaker_for_text} | 🎙️ {speaker_detector.speaker_count} voice(s)"
-                    known_speakers = speaker_detector.get_known_speakers()
-                    if known_speakers:
-                        speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
-                    print(f"   {speaker_info}")
-                    
-                    audio_features = speaker_detector.get_current_features()
-                    process_text(partial_text, conversation_manager, gemma_client, speaker_detector, audio_features)
-                    
-                    if audio_features:
-                        speaker_detector.clear_feature_buffer()
-                    
-                    # Reset for new speaker
+                    process_message(partial_text, current_speaker_for_text)
                     partial_text = ""
                     current_speaker_for_text = speaker_detector.current_speaker
                     frames_with_same_speaker = 0
-                    rec = KaldiRecognizer(model, 16000)  # Reset recognizer
+                    rec = KaldiRecognizer(model, 16000)
             else:
                 frames_with_same_speaker = 0
             
@@ -177,11 +175,11 @@ def main():
                 elif conversation_manager.waiting_for_feedback:
                     print(f"📝 Feedback: {text}")
                 else:
-                    print(f"📝 {text}")
                     known_speakers = speaker_detector.get_known_speakers()
                     speaker_info = f"👤 {speaker_detector.current_speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)"
                     if known_speakers:
                         speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
+                    print(f"📝 {text}")
                     print(f"   {speaker_info}")
                 
                 audio_features = speaker_detector.get_current_features()
