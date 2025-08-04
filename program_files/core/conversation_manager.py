@@ -3,16 +3,19 @@
 
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from utils.text_utils import is_question, contains_keywords, truncate_history, format_conversation_context
+from utils.text_utils import contains_keywords, truncate_history, format_conversation_context
 from utils.enhanced_conversation_db import EnhancedConversationDB
-
-ENTER_KEYWORDS = ['hey gemma', 'gemma', 'assistant', 'help']
-EXIT_KEYWORDS = ['exit', 'quit', 'stop', 'bye', 'goodbye', 'end conversation']
+from utils.config import ConversationModeConfig
 
 class ConversationManager:
     """Manages conversation state and history"""
     
-    def __init__(self, enable_vector_db: bool = True):
+    def __init__(self, enable_vector_db: bool = True, config: Optional[ConversationModeConfig] = None):
+        if config is None:
+            from utils.config import cfg
+            config = cfg.conversation_mode
+            
+        self.config = config
         self.in_gemma_mode = False
         self.waiting_for_feedback = False
         self.gemma_conversation_history = []
@@ -30,21 +33,42 @@ class ConversationManager:
         self.gemma_conversation_history = []
         print(f"🆕 New conversation session: {self.session_id}")
         
+    def is_question(self, text: str) -> bool:
+        """Check if text is a question using configurable parameters"""
+        text_lower = text.strip().lower()
+        
+        # Convert config words to lowercase for comparison
+        question_words = [w.lower() for w in self.config.question_words]
+        aux_prefixes = [p.lower() for p in self.config.auxiliary_prefixes]
+        
+        return (
+            "?" in text
+            or any(text_lower.startswith(word) for word in question_words)
+            or any(text_lower.startswith(prefix) for prefix in aux_prefixes)
+        )
+    
     def should_enter_gemma_mode(self, text: str) -> bool:
         """Check if we should enter Gemma conversation mode"""
-        text_lower = text.lower().strip()
-        return (contains_keywords(text_lower, ENTER_KEYWORDS) or 
-                is_question(text))
+        # Check for enter keywords
+        keyword_match = contains_keywords(text, self.config.enter_keywords)
+        
+        # Check if questions should trigger entry
+        question_trigger = self.config.enter_on_questions and self.is_question(text)
+        
+        return keyword_match or question_trigger
     
     def should_exit_gemma_mode(self, text: str) -> bool:
         """Check if we should exit Gemma conversation mode"""
-        return contains_keywords(text.lower().strip(), EXIT_KEYWORDS)
+        return contains_keywords(text, self.config.exit_keywords)
     
     def add_to_history(self, text: str, is_user: bool = True, speaker_name: str = None, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None, latency_metrics: Optional[Dict] = None):
         """Add message to conversation history and enhanced vector database"""
         role = "user" if is_user else "assistant"
         self.gemma_conversation_history.append({"role": role, "content": text})
-        self.gemma_conversation_history = truncate_history(self.gemma_conversation_history)
+        self.gemma_conversation_history = truncate_history(
+            self.gemma_conversation_history, 
+            self.config.max_history_items
+        )
         
         # Store in enhanced vector database with audio features
         if self.vector_db:
@@ -64,7 +88,10 @@ class ConversationManager:
     
     def get_conversation_context(self) -> str:
         """Get conversation context for Gemma"""
-        return format_conversation_context(self.gemma_conversation_history)
+        return format_conversation_context(
+            self.gemma_conversation_history, 
+            self.config.max_context_messages
+        )
     
     def reset_conversation(self):
         """Reset conversation state"""

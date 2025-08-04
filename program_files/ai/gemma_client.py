@@ -27,7 +27,7 @@ class GemmaClient:
             return prompt_template.format(context=context, prompt=prompt)
         return f"{context}\nUser: {prompt}\n\nAssistant:" if context else prompt
     
-    def generate_response(self, prompt: str, context: str = "", timeout: int = 30, 
+    def generate_response(self, prompt: str, context: str = "", timeout: Optional[int] = None, 
                          image_path: Optional[Union[str, Path]] = None,
                          prompt_template: Optional[str] = None,
                          vector_context: Optional[Dict[str, Any]] = None) -> Optional[str]:
@@ -65,7 +65,9 @@ class GemmaClient:
                 print(f"❌ Error encoding image: {e}")
                 return None
         
-        response = requests.post(self.api_url, json=payload, timeout=timeout)
+        # Use default timeout if none provided
+        request_timeout = timeout if timeout is not None else 30
+        response = requests.post(self.api_url, json=payload, timeout=request_timeout)
         
         if response.status_code == 200:
             return response.json()['response'].strip()

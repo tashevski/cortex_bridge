@@ -3,28 +3,24 @@
 
 import time
 from typing import Optional
-from ai.gemma_client import GemmaClient
+from utils.config import SmartModelSelectorConfig
 
 class SmartModelSelector:
     """Intelligently selects models to minimize loading overhead"""
     
-    def __init__(self, 
-                 switch_threshold: int = 30,
-                 context_length_threshold: int = 500,
-                 complex_keywords: list = None,
-                 simple_keywords: list = None):
+    def __init__(self, config: Optional[SmartModelSelectorConfig] = None):
+        if config is None:
+            from utils.config import cfg
+            config = cfg.smart_model_selector
+            
         self.current_model = None
         self.last_switch_time = 0
-        self.switch_threshold = switch_threshold  # seconds before considering switch
-        self.context_length_threshold = context_length_threshold  # characters
-        
-        # Default keywords if none provided
-        default_complex = ['analyze', 'explain', 'reasoning', 'complex', 'detailed', 'comprehensive']
-        default_simple = ['what', 'when', 'where', 'yes', 'no', 'quick', 'simple']
+        self.switch_threshold = config.switch_threshold
+        self.context_length_threshold = config.context_length_threshold
         
         self.complexity_keywords = {
-            'complex': complex_keywords or default_complex,
-            'simple': simple_keywords or default_simple
+            'complex': config.complex_keywords,
+            'simple': config.simple_keywords
         }
     
     def should_use_e4b(self, prompt: str, context: str = "", has_image: bool = False) -> bool:

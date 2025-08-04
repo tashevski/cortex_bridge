@@ -6,6 +6,7 @@ import threading
 from collections import deque
 from typing import Optional, Callable, Dict, Any
 from dataclasses import dataclass
+from utils.config import LatencyMonitorConfig
 
 @dataclass
 class LatencyMetrics:
@@ -21,19 +22,23 @@ class LatencyMetrics:
 class LatencyMonitor:
     """Monitors response latency and user speech patterns to optimize model selection"""
     
-    def __init__(self, history_size: int = 50):
-        self.history_size = history_size
-        self.metrics_history = deque(maxlen=history_size)
+    def __init__(self, config: Optional[LatencyMonitorConfig] = None):
+        if config is None:
+            from utils.config import cfg
+            config = cfg.latency_monitor
+            
+        self.history_size = config.history_size
+        self.metrics_history = deque(maxlen=config.history_size)
         self.current_response_start = None
         self.speech_during_response = 0.0
         self.speech_start_time = None
         self.is_monitoring = False
         self.lock = threading.Lock()
         
-        # Adaptive thresholds
-        self.high_latency_threshold = 3.0  # seconds
-        self.acceptable_interruption_rate = 0.2  # 20% of responses
-        self.emergency_switch_threshold = 0.5  # 50% recent interruptions
+        # Adaptive thresholds from config
+        self.high_latency_threshold = config.high_latency_threshold
+        self.acceptable_interruption_rate = config.acceptable_interruption_rate
+        self.emergency_switch_threshold = config.emergency_switch_threshold
         
     def start_response_timing(self, model: str, context_length: int, has_image: bool):
         """Start timing a model response"""

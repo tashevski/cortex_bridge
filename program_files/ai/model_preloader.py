@@ -4,14 +4,21 @@
 import requests
 import threading
 import time
-from typing import List
+from typing import List, Optional
+from utils.config import ModelPreloaderConfig
 
 class ModelPreloader:
     """Preload and warm models to minimize loading times"""
     
-    def __init__(self, base_url: str = "http://localhost:11434"):
-        self.base_url = base_url
-        self.api_url = f"{base_url}/api/generate"
+    def __init__(self, config: Optional[ModelPreloaderConfig] = None):
+        if config is None:
+            from utils.config import cfg
+            config = cfg.model_preloader
+            
+        self.base_url = config.base_url
+        self.timeout = config.timeout
+        self.max_retries = config.max_retries
+        self.api_url = f"{config.base_url}/api/generate"
     
     def warm_model(self, model: str) -> float:
         """Warm up a model with a minimal request"""
@@ -26,7 +33,7 @@ class ModelPreloader:
                     'stream': False,
                     'options': {'num_predict': 1}  # Minimal generation
                 },
-                timeout=30
+                timeout=self.timeout
             )
             load_time = time.time() - start_time
             

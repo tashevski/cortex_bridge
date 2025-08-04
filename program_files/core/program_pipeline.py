@@ -9,7 +9,6 @@ from vosk import Model, KaldiRecognizer
 from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.optimized_gemma_client import OptimizedGemmaClient
-from utils.text_utils import is_question
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
 
@@ -85,7 +84,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         conversation_manager.start_new_conversation()
         conversation_manager.in_gemma_mode = True
         
-        if is_question(text):
+        if conversation_manager.is_question(text):
             conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
         handle_gemma_response(gemma_client, text, "", conversation_manager)
@@ -109,7 +108,7 @@ def main():
     emotion_classifier = EmotionClassifier() # Load emotion classifier 
     conversation_manager = ConversationManager()
     speech_processor = SpeechProcessor()
-    gemma_client = OptimizedGemmaClient("gemma3n:e2b")  # Start with faster model
+    gemma_client = OptimizedGemmaClient()  # Uses config defaults
     
     speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)
     

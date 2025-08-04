@@ -5,6 +5,7 @@ from .gemma_client import GemmaClient
 from .smart_model_selector import SmartModelSelector  
 from .model_preloader import ModelPreloader
 from .latency_monitor import LatencyMonitor
+from utils.config import GemmaClientConfig
 import requests
 import time
 from typing import Optional
@@ -12,18 +13,15 @@ from typing import Optional
 class OptimizedGemmaClient(GemmaClient):
     """Enhanced GemmaClient with loading optimizations"""
     
-    def __init__(self, default_model: str = "gemma3n:e2b", base_url: str = "http://localhost:11434",
-                 context_length_threshold: int = 500,
-                 complex_keywords: list = None,
-                 simple_keywords: list = None):
-        super().__init__(default_model, base_url)
-        self.selector = SmartModelSelector(
-            context_length_threshold=context_length_threshold,
-            complex_keywords=complex_keywords,
-            simple_keywords=simple_keywords
-        )
-        self.preloader = ModelPreloader(base_url)
-        self.latency_monitor = LatencyMonitor()
+    def __init__(self, config: Optional[GemmaClientConfig] = None):
+        if config is None:
+            from utils.config import cfg
+            config = cfg.gemma_client
+            
+        super().__init__(config.default_model, config.base_url)
+        self.selector = SmartModelSelector()  # Uses default config
+        self.preloader = ModelPreloader()  # Uses default config
+        self.latency_monitor = LatencyMonitor()  # Uses default config
         self.current_loaded_model = None
         
     def generate_response_optimized(self, prompt: str, context: str = "", **kwargs):
