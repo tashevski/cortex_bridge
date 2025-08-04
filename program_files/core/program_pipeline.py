@@ -1,183 +1,160 @@
 #!/usr/bin/env python3
-"""Program Pipeline with Conditional Gemma Integration"""
+"""Simplified Speech Processing Pipeline"""
 
 import json
 import pyaudio
 import os
+from typing import Optional, Dict
 from vosk import Model, KaldiRecognizer
-from .conditional_gemma_input import ConditionalGemmaPipeline, CONDITIONS
 from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.gemma_client import GemmaClient
-from utils.utils import is_question
+from utils.text_utils import is_question
+from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 
-# Load Vosk model
-print("Loading Vosk model...")
-# Get the absolute path to the models directory
-current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-model_path = os.path.join(current_dir, "models", "vosk-model-small-en-us-0.15")
-model = Model(model_path)
+def load_vosk_model():
+    print("Loading Vosk model...")
+    try:
+        from config.vosk_config import get_vosk_model_path, get_vosk_model_info
+        model_path = get_vosk_model_path()
+        model_info = get_vosk_model_info()
+        print(f"   Using: {model_info['name']} ({model_info['accuracy']} accuracy)")
+    except ImportError:
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        model_path = os.path.join(current_dir, "models", "vosk-model-en-us-0.22")
+        print("   Using: vosk-model-en-us-0.22 (fallback)")
+    return Model(model_path)
 
-# Initialize components
-conditional_pipeline = ConditionalGemmaPipeline(
-    model="gemma3n:e2b", 
-    conditions=CONDITIONS['questions_only']
-)
-gemma_client = GemmaClient("gemma3n:e4b")
-
-def handle_gemma_conversation(text: str, conversation_manager: ConversationManager, speaker_detector) -> None:        
-
-    """Handle conversation in Gemma mode"""
-    conversation_manager.add_to_history(text, is_user=True, speaker_name=speaker_detector.current_speaker)
+def process_text(text: str, conversation_manager: ConversationManager, gemma_client: GemmaClient, 
+                speaker_detector, audio_features: Optional[Dict] = None):
+    """Process transcribed text based on conversation state"""
     
-    # Check if we should exit Gemma mode and ask for feedback
-    if conversation_manager.should_exit_gemma_mode(text):       
-        print("Was that helpful?")
-        conversation_manager.waiting_for_feedback = True
+    if conversation_manager.waiting_for_feedback:
+        feedback = {"helpful": "unknown"}
+        text_lower = text.lower().strip()
+        
+        if text_lower in ['yes', 'y', 'helpful']:
+            feedback["helpful"] = True
+        elif text_lower in ['no', 'n', 'not helpful']:
+            feedback["helpful"] = False
+        elif text_lower in ['partially', 'somewhat']:
+            feedback["helpful"] = "partial"
+        
+        if conversation_manager.vector_db:
+            conversation_manager.vector_db.update_session_with_feedback(
+                conversation_manager.session_id, feedback)
+        
+        conversation_manager.reset_conversation()
+        conversation_manager.start_new_conversation()
+        print("🎤 Back to listening mode")
         return
     
-    # Continue conversation with Gemma
-    context = conversation_manager.get_conversation_context()
-    response = gemma_client.generate_response(text, context)
+    if conversation_manager.in_gemma_mode:
+        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
+        
+        if conversation_manager.should_exit_gemma_mode(text):
+            print("Was that helpful?")
+            conversation_manager.waiting_for_feedback = True
+            return
+        
+        context = conversation_manager.get_conversation_context()
+        response = gemma_client.generate_response(text, context)
+        if response:
+            print(f"🤖 Gemma: {response}")
+            conversation_manager.add_to_history(response, False, "Gemma")
+        return
     
-    if response:
-        print(f"🤖 Gemma: {response}")
-        conversation_manager.add_to_history(response, is_user=False, speaker_name="Gemma")
-    else:
-        print("❌ Failed to get response from Gemma")
-
-def handle_feedback_mode(text: str, conversation_manager: ConversationManager) -> None:
-    """Handle feedback collection mode"""
-    # Create feedback object
-    feedback = {
-        "helpful": None,
-        "response": text
-    }
-    
-    # Categorize the response
-    text_lower = text.lower().strip()
-    if text_lower in ['yes', 'y', 'very helpful', 'helpful', 'it was helpful']:
-        feedback["helpful"] = True
-    elif text_lower in ['no', 'n', 'not helpful', 'unhelpful', 'it was not helpful']:
-        feedback["helpful"] = False
-    elif text_lower in ['partially', 'somewhat', 'kinda', 'sort of', 'a little']:
-        feedback["helpful"] = "partial"
-    else:
-        feedback["helpful"] = "unknown"
-    
-    # Update all messages in this session with feedback
-    if conversation_manager.vector_db:
-        conversation_manager.vector_db.update_session_with_feedback(
-            conversation_manager.session_id, feedback
-        )
-    
-    # Store feedback for potential future use
-    conversation_manager.last_feedback = feedback
-    
-    # Reset and return to listening mode
-    conversation_manager.reset_conversation()
-    print("🎤 Back to listening mode")
-    
-    # Start new conversation for next interaction
-    conversation_manager.start_new_conversation()
-    
-    return feedback
-
-def handle_listening_mode(text: str, conversation_manager: ConversationManager, speaker_detector) -> None:
-    """Handle conversation in listening mode"""
     if conversation_manager.should_enter_gemma_mode(text):
         print("🤖 Entering Gemma conversation mode...")
-        
-        # Start new conversation session
         conversation_manager.start_new_conversation()
-        
         conversation_manager.in_gemma_mode = True
         
-        # Only save the message if it's a meaningful question, not just a trigger
-        if is_question(text):  # Only save actual questions
-            conversation_manager.add_to_history(text, is_user=True, speaker_name=speaker_detector.current_speaker)
+        if is_question(text):
+            conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
         
-        # Initial response from Gemma
         response = gemma_client.generate_response(text)
         if response:
             print(f"🤖 Gemma: {response}")
-            conversation_manager.add_to_history(response, is_user=False, speaker_name="Gemma")
+            conversation_manager.add_to_history(response, False, "Gemma")
     else:
         print("⏭️  Not a question - staying in listening mode")
+        # Save listening mode conversations too!
+        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
 
 def main():
-    """Main transcription and conditional Gemma pipeline"""
-    print("🎤 Conditional Gemma Pipeline - Speak (Ctrl+C to stop)")
+    """Main speech processing pipeline"""
+    print("🎤 Speech Processing Pipeline - Speak (Ctrl+C to stop)")
     print("📊 Questions will enter Gemma conversation mode")
-    print("💬 Say 'exit' to leave Gemma conversation mode")
     
-    # Initialize components
+    if not ensure_ollama_running() or not ensure_required_models():
+        print("❌ Failed to initialize Ollama. Exiting.")
+        return
+    
+    print("✅ Ollama initialization complete")
+    
+    model = load_vosk_model()
     conversation_manager = ConversationManager()
     speech_processor = SpeechProcessor()
-    speaker_detector = SpeakerDetector()
+    gemma_client = GemmaClient("gemma3n:e4b")
     
-    # Initialize speech recognizer
+    speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)
+    
+    # Start initial session for listening mode
+    conversation_manager.start_new_conversation()
+    
     rec = KaldiRecognizer(model, 16000)
     audio = pyaudio.PyAudio()
-    
-    # Open audio stream
     stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, 
                        input=True, frames_per_buffer=2048)
     stream.start_stream()
     
     try:
         while True:
-            # Read audio data
             try:
                 data = stream.read(2048, exception_on_overflow=False)
             except OSError as e:
                 if e.errno == -9981:
                     continue
-                else:
-                    print(f"Audio error: {e}")
-                    break
+                print(f"Audio error: {e}")
+                break
             
-            # Process VAD and speaker detection
             is_speech = speech_processor.process_frame(data)
             if is_speech:
                 speaker_detector.update_speaker_count(data, speech_processor.silence_frames)
             
-            # Process audio through Vosk recognizer
             if rec.AcceptWaveform(data):
                 result = json.loads(rec.Result())
-                if result.get('text', '').strip():
-                    text = result['text']
-                    
-                    # Check for program exit
-                    if text.lower() == "exit program":
-                        print("ending program")
-                        break
-                    
-                    # Display transcription
-                    if conversation_manager.in_gemma_mode:
-                        print(f"💬 You: {text}")
-                    elif conversation_manager.waiting_for_feedback:
-                        print(f"📝 Feedback: {text}")
-                    else:
-                        print(f"📝 {text}")
-                        print(f"   👤 {speaker_detector.current_speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)")
-                    
-                    # Handle conversation based on mode
-                    if conversation_manager.waiting_for_feedback:
-                        feedback = handle_feedback_mode(text, conversation_manager)
-                    elif conversation_manager.in_gemma_mode:
-                        handle_gemma_conversation(text, conversation_manager, speaker_detector)
-                    else:
-                        handle_listening_mode(text, conversation_manager, speaker_detector)
+                text = result.get('text', '').strip()
+                if not text:
+                    continue
+                
+                if text.lower() == "exit program":
+                    print("ending program")
+                    break
+                
+                if conversation_manager.in_gemma_mode:
+                    print(f"💬 You: {text}")
+                elif conversation_manager.waiting_for_feedback:
+                    print(f"📝 Feedback: {text}")
+                else:
+                    print(f"📝 {text}")
+                    known_speakers = speaker_detector.get_known_speakers()
+                    speaker_info = f"👤 {speaker_detector.current_speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)"
+                    if known_speakers:
+                        speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
+                    print(f"   {speaker_info}")
+                
+                audio_features = speaker_detector.get_current_features()
+                process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features)
+                
+                if audio_features:
+                    speaker_detector.clear_feature_buffer()
                         
     except KeyboardInterrupt:
         print("\n🛑 Stopping pipeline...")
-        
-        # Clean shutdown
         stream.stop_stream()
         stream.close()
         audio.terminate()
-        conditional_pipeline.cleanup()
         print("✅ Cleanup complete")
 
 if __name__ == "__main__":

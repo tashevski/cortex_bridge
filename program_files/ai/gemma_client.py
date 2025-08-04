@@ -2,8 +2,7 @@
 """Gemma API client for simplified interactions"""
 
 import requests
-import json
-from typing import Optional, Dict, Any
+from typing import Optional
 
 class GemmaClient:
     """Simple client for Gemma API interactions"""
@@ -17,26 +16,19 @@ class GemmaClient:
         """Generate response from Gemma"""
         full_prompt = f"{context}\nUser: {prompt}\n\nAssistant:" if context else prompt
         
-        try:
-            response = requests.post(
-                self.api_url,
-                json={'model': self.model, 'prompt': full_prompt.strip(), 'stream': False},
-                timeout=timeout
-            )
-            
-            if response.status_code == 200:
-                return response.json()['response'].strip()
-            else:
-                print(f"❌ Error: HTTP {response.status_code}")
-                return None
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            return None
+        response = requests.post(
+            self.api_url,
+            json={'model': self.model, 'prompt': full_prompt.strip(), 'stream': False},
+            timeout=timeout
+        )
+        
+        if response.status_code == 200:
+            return response.json()['response'].strip()
+        
+        print(f"❌ Error: HTTP {response.status_code}")
+        return None
     
     def is_server_available(self) -> bool:
         """Check if Gemma server is available"""
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            return response.status_code == 200
-        except:
-            return False 
+        response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+        return response.status_code == 200 
