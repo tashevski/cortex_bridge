@@ -49,11 +49,9 @@ class SmartModelSelector:
         """Get the optimal model considering switching costs"""
         preferred_model = "gemma3n:e4b" if self.should_use_e4b(prompt, context, has_image) else "gemma3n:e2b"
         
-        # If we recently switched, stick with current model unless absolutely necessary
+        # If we recently switched, stick with current model
         time_since_switch = time.time() - self.last_switch_time
-        if (self.current_model and 
-            time_since_switch < self.switch_threshold and
-            not self._is_switch_critical(prompt, context)):
+        if self.current_model and time_since_switch < self.switch_threshold:
             return self.current_model
             
         if preferred_model != self.current_model:
@@ -62,8 +60,3 @@ class SmartModelSelector:
             
         return preferred_model
     
-    def _is_switch_critical(self, prompt: str, context: str) -> bool:
-        """Determine if model switch is critical despite recent switch"""
-        text = (prompt + " " + context).lower()
-        critical_keywords = ['urgent', 'important', 'critical', 'emergency']
-        return any(word in text for word in critical_keywords)

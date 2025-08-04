@@ -5,5 +5,6 @@ from .gemma_client import GemmaClient
 from .optimized_gemma_client import OptimizedGemmaClient
 from .smart_model_selector import SmartModelSelector
 from .model_preloader import ModelPreloader
+from .latency_monitor import LatencyMonitor
 
-__all__ = ['GemmaClient', 'OptimizedGemmaClient', 'SmartModelSelector', 'ModelPreloader'] 
+__all__ = ['GemmaClient', 'OptimizedGemmaClient', 'SmartModelSelector', 'ModelPreloader', 'LatencyMonitor'] 

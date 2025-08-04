@@ -11,6 +11,7 @@ from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.optimized_gemma_client import OptimizedGemmaClient
 from utils.text_utils import is_question
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
+from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
 
 def load_vosk_model():
     print("Loading Vosk model...")
@@ -39,27 +40,25 @@ class EmotionClassifier:
 
     def process(self, text: str):
         """Return the top emotion label and confidence for the given text."""
-        emotions = self.classifier(text)[0]
-        top_emotion = max(emotions, key=lambda x: x['score'])
-        emotion_text = f"{top_emotion['label'].title()}"
-        confidence = top_emotion['score']
-        return emotion_text, confidence
+        if self.classifier is None:
+            return "neutral", 0.0
+        
+        try:
+            emotions = self.classifier(text)[0]
+            top_emotion = max(emotions, key=lambda x: x['score'])
+            emotion_text = f"{top_emotion['label'].title()}"
+            confidence = top_emotion['score']
+            return emotion_text, confidence
+        except Exception as e:
+            print(f"⚠️  Emotion processing failed: {e}")
+            return "neutral", 0.0
 
-def process_text(text: str, conversation_manager: ConversationManager, gemma_client: GemmaClient, 
+def process_text(text: str, conversation_manager: ConversationManager, gemma_client: OptimizedGemmaClient, 
                 speaker_detector, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
     """Process transcribed text based on conversation state"""
     
     if conversation_manager.waiting_for_feedback:
-        text_lower = text.lower().strip()
-        feedback = {"helpful": "unknown"}
-        
-        if text_lower in ['yes', 'y', 'helpful']:
-            feedback["helpful"] = True
-        elif text_lower in ['no', 'n', 'not helpful']:
-            feedback["helpful"] = False
-        elif text_lower in ['partially', 'somewhat']:
-            feedback["helpful"] = "partial"
-        
+        feedback = process_feedback(text)
         if conversation_manager.vector_db:
             conversation_manager.vector_db.update_session_with_feedback(
                 conversation_manager.session_id, feedback)
@@ -78,10 +77,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
             return
         
         context = conversation_manager.get_conversation_context()
-        response = gemma_client.generate_response_optimized(text, context)
-        if response:
-            print(f"🤖 Gemma: {response}")
-            conversation_manager.add_to_history(response, False, "Gemma")
+        handle_gemma_response(gemma_client, text, context, conversation_manager)
         return
     
     if conversation_manager.should_enter_gemma_mode(text):
@@ -92,10 +88,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         if is_question(text):
             conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
-        response = gemma_client.generate_response_optimized(text)
-        if response:
-            print(f"🤖 Gemma: {response}")
-            conversation_manager.add_to_history(response, False, "Gemma")
+        handle_gemma_response(gemma_client, text, "", conversation_manager)
     else:
         print("⏭️  Not a question - staying in listening mode")
         # Save listening mode conversations too!
@@ -138,10 +131,7 @@ def main():
         """Process a complete message"""
         print(f"📝 {text}")
         known_speakers = speaker_detector.get_known_speakers()
-        speaker_info = f"👤 {speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)"
-        if known_speakers:
-            speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
-        print(f"   {speaker_info}")
+        print_speaker_info(speaker, speaker_detector.speaker_count, known_speakers)
         
         audio_features = speaker_detector.get_current_features()
         # We skip emotion classification here to avoid duplicate costly inference.
@@ -161,6 +151,10 @@ def main():
             
             # Process speech and speaker detection
             is_speech = speech_processor.process_frame(data)
+            
+            # Record speech activity for latency monitoring
+            gemma_client.record_speech_activity(is_speech)
+            
             if is_speech:
                 speaker_detector.update_speaker_count(data, speech_processor.silence_frames)
             
@@ -192,17 +186,17 @@ def main():
                     print("ending program")
                     break
                 
+                if handle_special_commands(text, gemma_client, conversation_manager):
+                    continue
+                
                 if conversation_manager.in_gemma_mode:
                     print(f"💬 You: {text}")
                 elif conversation_manager.waiting_for_feedback:
                     print(f"📝 Feedback: {text}")
                 else:
-                    known_speakers = speaker_detector.get_known_speakers()
-                    speaker_info = f"👤 {speaker_detector.current_speaker} | 🎙️ {speaker_detector.speaker_count} voice(s)"
-                    if known_speakers:
-                        speaker_info += f" | 📚 Known: {', '.join(known_speakers)}"
                     print(f"📝 {text}")
-                    print(f"   {speaker_info}")
+                    known_speakers = speaker_detector.get_known_speakers()
+                    print_speaker_info(speaker_detector.current_speaker, speaker_detector.speaker_count, known_speakers)
                 
                 audio_features = speaker_detector.get_current_features()
                 # Determine emotion for full recognized text

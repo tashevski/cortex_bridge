@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from .db_helpers import create_conversation_id, create_metadata, calculate_analytics, analyze_session
 
 class EnhancedConversationDB:
     """Vector database with audio features storage"""
@@ -26,26 +27,18 @@ class EnhancedConversationDB:
     def add_conversation_with_audio(self, session_id: str, text: str, speaker: str, 
                                   role: str, is_gemma_mode: bool, audio_features: Optional[Dict] = None,
                                   feedback: Optional[Dict] = None, conversation_context: Optional[str] = None,
-                                  emotion_text: Optional[str] = None, confidence: Optional[float] = None):
+                                  emotion_text: Optional[str] = None, confidence: Optional[float] = None,
+                                  latency_metrics: Optional[Dict] = None):
         """Add conversation with audio features"""
-        conversation_id = f"{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+        conversation_id = create_conversation_id(session_id)
         
         # Store conversation
         rich_text = f"{speaker} ({role}): {text}" + (" [GEMMA]" if is_gemma_mode else "")
-        metadata = {
-            'session_id': session_id,
-            'speaker': speaker,
-            'role': role,
-            'timestamp': datetime.now().isoformat(),
-            'has_audio_features': audio_features is not None
-        }
-        if emotion_text is not None:
-            metadata['emotion'] = emotion_text
-        if confidence is not None:
-            metadata['emotion_confidence'] = confidence
-        
-        if feedback:
-            metadata['feedback_helpful'] = str(feedback.get('helpful', ''))
+        metadata = create_metadata(
+            session_id, speaker, role, audio_features is not None,
+            emotion_text=emotion_text, confidence=confidence,
+            feedback=feedback, latency_metrics=latency_metrics
+        )
         
         self.conversations.add(
             documents=[rich_text],
@@ -113,6 +106,74 @@ class EnhancedConversationDB:
             return features_list, data['metadatas']
         
         return data['documents'], data['metadatas']
+    
+    def get_latency_analytics(self, session_id: str = None, days: int = 7) -> Dict[str, Any]:
+        """Get latency analytics from stored conversations"""
+        # Query recent conversations with latency data
+        where_clause = {"response_time": {"$gte": 0}}  # Has latency data
+        if session_id:
+            where_clause["session_id"] = session_id
+            
+        try:
+            results = self.conversations.get(
+                where=where_clause,
+                limit=1000  # Get up to 1000 recent entries
+            )
+            
+            if not results['metadatas']:
+                return {"status": "no_data"}
+            
+            # Process latency metrics
+            metrics = []
+            for metadata in results['metadatas']:
+                if 'response_time' in metadata:
+                    metrics.append(metadata)
+            
+            if not metrics:
+                return {"status": "no_latency_data"}
+            
+            return calculate_analytics(metrics)
+            
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    def get_problematic_sessions(self, interruption_threshold: float = 0.3) -> List[Dict[str, Any]]:
+        """Get sessions with high interruption rates or latency issues"""
+        try:
+            # Get all conversations with latency data
+            results = self.conversations.get(
+                where={"response_time": {"$gte": 0}},
+                limit=1000
+            )
+            
+            if not results['metadatas']:
+                return []
+            
+            # Group by session
+            sessions = {}
+            for metadata in results['metadatas']:
+                session_id = metadata.get('session_id', 'unknown')
+                if session_id not in sessions:
+                    sessions[session_id] = []
+                sessions[session_id].append(metadata)
+            
+            # Analyze each session
+            problematic_sessions = []
+            for session_id, session_data in sessions.items():
+                analysis = analyze_session(session_data)
+                if analysis['interruption_rate'] >= interruption_threshold or analysis['high_latency_count'] >= analysis['total'] * 0.5:
+                    problematic_sessions.append({
+                        "session_id": session_id,
+                        "total_responses": analysis['total'],
+                        "interruption_rate": analysis['interruption_rate'],
+                        "high_latency_count": analysis['high_latency_count'],
+                        "timestamp": analysis['timestamp']
+                    })
+            
+            return sorted(problematic_sessions, key=lambda x: x['interruption_rate'], reverse=True)
+            
+        except Exception as e:
+            return []
         
     def update_by_indexes(self, updates_dict, collection="audio_features"):
         """General function to update database entries by index with field values"""
