@@ -112,7 +112,7 @@ def update_database_speakers(confidence_threshold=0.8):
     gmm.fit(X)
     
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    model_dir = os.path.join(base_dir, "models", "gmm")
+    model_dir = os.path.join(base_dir, "models", "speaker_gmm")
     os.makedirs(model_dir, exist_ok=True)
     
     with open(os.path.join(model_dir, "gmm_model.pkl"), "wb") as f:

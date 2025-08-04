@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from utils.text_utils import is_question, contains_keywords, truncate_history, format_conversation_context
 from utils.enhanced_conversation_db import EnhancedConversationDB
 
-ENTER_KEYWORDS = ['hey gemma', 'gemma', 'ai', 'assistant', 'help']
+ENTER_KEYWORDS = ['hey gemma', 'gemma', 'assistant', 'help']
 EXIT_KEYWORDS = ['exit', 'quit', 'stop', 'bye', 'goodbye', 'end conversation']
 
 class ConversationManager:
