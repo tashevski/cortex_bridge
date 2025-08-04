@@ -4,6 +4,8 @@
 import chromadb
 import os
 import json
+import pickle
+import numpy as np
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
@@ -102,4 +104,52 @@ class EnhancedConversationDB:
             'total_conversations': self.conversations.count(),
             'total_audio_features': self.audio_features.count(),
             'conversations_with_audio': sum(1 for m in conv_data['metadatas'] if m.get('has_audio_features'))
-        } 
+        }
+    
+    def update_speakers_with_gmm(self, gmm_model, scaler, confidence_threshold=0.8):
+        """Update speaker labels using GMM posterior probabilities"""
+        features, metadata = self.get_audio_features_for_clustering()
+        if not features:
+            return print("No audio features found")
+        
+        # Save GMM model
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        model_dir = os.path.join(base_dir, "models", "gmm")
+        os.makedirs(model_dir, exist_ok=True)
+        
+        with open(os.path.join(model_dir, "gmm_model.pkl"), "wb") as f:
+            pickle.dump({'gmm': gmm_model, 'scaler': scaler}, f)
+        
+        # Apply GMM to features
+        X_scaled = scaler.transform(features)
+        probabilities = gmm_model.predict_proba(X_scaled)
+        labels = gmm_model.predict(X_scaled)
+        
+        updated_count = 0
+        for i, (meta, label, probs) in enumerate(zip(metadata, labels, probabilities)):
+            max_prob = np.max(probs)
+            if max_prob >= confidence_threshold:
+                speaker_id = chr(65 + label)  # A, B, C...
+                
+                # Update audio features metadata
+                self.audio_features.update(
+                    ids=[f"audio_{meta['conversation_id']}"],
+                    metadatas=[{**meta, 'gmm_speaker': speaker_id, 'gmm_confidence': float(max_prob)}]
+                )
+                
+                # Update conversation metadata if exists
+                try:
+                    conv_data = self.conversations.get(ids=[meta['conversation_id']])
+                    if conv_data['metadatas']:
+                        conv_meta = conv_data['metadatas'][0]
+                        self.conversations.update(
+                            ids=[meta['conversation_id']],
+                            metadatas=[{**conv_meta, 'gmm_speaker': speaker_id}]
+                        )
+                except:
+                    pass
+                
+                updated_count += 1
+        
+        print(f"🎯 Updated {updated_count}/{len(features)} speakers (confidence ≥ {confidence_threshold})")
+        return updated_count

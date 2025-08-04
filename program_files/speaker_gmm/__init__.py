@@ -1,1 +1,1 @@
-from .gmm_clustering import cluster_speakers, find_optimal_speakers
+from .gmm_clustering import cluster_speakers, find_optimal_speakers, update_database_speakers
