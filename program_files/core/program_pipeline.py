@@ -10,12 +10,12 @@ from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.optimized_gemma_client import OptimizedGemmaClient
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
+from utils.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
 
 def load_vosk_model(config=None):
     """Load Vosk model using configuration"""
     if config is None:
-        from utils.config import cfg
         config = cfg.vosk_model
     
     print("Loading Vosk model...")
@@ -119,8 +119,6 @@ def main():
         return
     
     print("✅ Ollama initialization complete")
-    
-    from utils.config import cfg
     
     model = load_vosk_model()
     emotion_classifier = EmotionClassifier() # Load emotion classifier 

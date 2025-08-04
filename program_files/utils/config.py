@@ -110,7 +110,7 @@ class SpeakerDetectorConfig:
 class VoskModelConfig:
     """Configuration for Vosk speech recognition model"""
     # Model preference (in order of preference)
-    preferred_models: List[str] = field(default_factory=lambda: ["medium", "small"])
+    preferred_models: List[str] = field(default_factory=lambda: ["large", "medium", "small"])
     
     # Available models
     available_models: dict = field(default_factory=lambda: {
@@ -119,6 +119,7 @@ class VoskModelConfig:
         "large": {"name": "vosk-model-en-us-0.21", "accuracy": "high"}
     })
     
+    # https://alphacephei.com/vosk/models/vosk-model-en-us-0.21.zip
     # Model directory
     models_base_dir: str = "models"  # Base directory for model storage
     
