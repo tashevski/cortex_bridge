@@ -8,21 +8,35 @@ from ai.gemma_client import GemmaClient
 class SmartModelSelector:
     """Intelligently selects models to minimize loading overhead"""
     
-    def __init__(self):
+    def __init__(self, 
+                 switch_threshold: int = 30,
+                 context_length_threshold: int = 500,
+                 complex_keywords: list = None,
+                 simple_keywords: list = None):
         self.current_model = None
         self.last_switch_time = 0
-        self.switch_threshold = 30  # seconds before considering switch
+        self.switch_threshold = switch_threshold  # seconds before considering switch
+        self.context_length_threshold = context_length_threshold  # characters
+        
+        # Default keywords if none provided
+        default_complex = ['analyze', 'explain', 'reasoning', 'complex', 'detailed', 'comprehensive']
+        default_simple = ['what', 'when', 'where', 'yes', 'no', 'quick', 'simple']
+        
         self.complexity_keywords = {
-            'complex': ['analyze', 'explain', 'reasoning', 'complex', 'detailed', 'comprehensive'],
-            'simple': ['what', 'when', 'where', 'yes', 'no', 'quick', 'simple']
+            'complex': complex_keywords or default_complex,
+            'simple': simple_keywords or default_simple
         }
     
-    def should_use_e4b(self, prompt: str, context: str = "") -> bool:
+    def should_use_e4b(self, prompt: str, context: str = "", has_image: bool = False) -> bool:
         """Determine if we should use the larger e4b model"""
+        # Always use e4b for image inputs (multimodal requires more capability)
+        if has_image:
+            return True
+            
         text = (prompt + " " + context).lower()
         
-        # Length-based heuristic
-        if len(text) > 200:
+        # Context length-based heuristic (configurable threshold)
+        if len(context) > self.context_length_threshold:
             return True
             
         # Keyword-based complexity detection
@@ -31,9 +45,9 @@ class SmartModelSelector:
         
         return complex_score > simple_score
     
-    def get_optimal_model(self, prompt: str, context: str = "") -> str:
+    def get_optimal_model(self, prompt: str, context: str = "", has_image: bool = False) -> str:
         """Get the optimal model considering switching costs"""
-        preferred_model = "gemma3n:e4b" if self.should_use_e4b(prompt, context) else "gemma3n:e2b"
+        preferred_model = "gemma3n:e4b" if self.should_use_e4b(prompt, context, has_image) else "gemma3n:e2b"
         
         # If we recently switched, stick with current model unless absolutely necessary
         time_since_switch = time.time() - self.last_switch_time

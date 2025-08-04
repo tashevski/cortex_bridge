@@ -10,17 +10,27 @@ import time
 class OptimizedGemmaClient(GemmaClient):
     """Enhanced GemmaClient with loading optimizations"""
     
-    def __init__(self, default_model: str = "gemma3n:e2b", base_url: str = "http://localhost:11434"):
+    def __init__(self, default_model: str = "gemma3n:e2b", base_url: str = "http://localhost:11434",
+                 context_length_threshold: int = 500,
+                 complex_keywords: list = None,
+                 simple_keywords: list = None):
         super().__init__(default_model, base_url)
-        self.selector = SmartModelSelector()
+        self.selector = SmartModelSelector(
+            context_length_threshold=context_length_threshold,
+            complex_keywords=complex_keywords,
+            simple_keywords=simple_keywords
+        )
         self.preloader = ModelPreloader(base_url)
         self.current_loaded_model = None
         
     def generate_response_optimized(self, prompt: str, context: str = "", **kwargs):
         """Generate response with optimized model selection"""
         
+        # Check if image is provided
+        has_image = 'image_path' in kwargs and kwargs['image_path'] is not None
+        
         # Get optimal model
-        optimal_model = self.selector.get_optimal_model(prompt, context)
+        optimal_model = self.selector.get_optimal_model(prompt, context, has_image)
         
         # Check if we need to switch models
         if optimal_model != self.current_loaded_model:
