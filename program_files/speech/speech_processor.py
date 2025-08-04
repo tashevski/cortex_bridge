@@ -201,7 +201,7 @@ class SpeakerDetector:
         """Get current speaker features for database"""
         if self.audio_buffer:
             embedding = self._get_embedding(np.array(self.audio_buffer))
-            return {f'feature_{i}': float(f) for i, f in enumerate(embedding[:6])}
+            return {f'feature_{i}': float(f) for i, f in enumerate(embedding)}
     
     def clear_feature_buffer(self):
         """Clear audio buffer"""
