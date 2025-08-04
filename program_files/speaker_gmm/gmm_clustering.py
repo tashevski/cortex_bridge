@@ -7,13 +7,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 import sys
 import os
+import pickle
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.enhanced_conversation_db import EnhancedConversationDB
 
 def cluster_speakers(n_speakers=2):
     """Cluster audio features using GMM to identify speakers"""
     db = EnhancedConversationDB()
-    features, metadata = db.get_audio_features_for_clustering()
+    features, metadata = db.get_data("audio_features", return_features=True)
     
     if len(features) < n_speakers:
         return print(f"Need at least {n_speakers} samples, found {len(features)}")
@@ -32,7 +34,7 @@ def cluster_speakers(n_speakers=2):
 def find_optimal_speakers():
     """Find optimal number of speakers using BIC score"""
     db = EnhancedConversationDB()
-    features, metadata = db.get_audio_features_for_clustering()
+    features, metadata = db.get_data("audio_features", return_features=True)
     
     if len(features) < 4:
         return print(f"Need at least 4 samples for optimization, found {len(features)}")
@@ -59,7 +61,7 @@ def find_optimal_speakers():
 def update_database_speakers(confidence_threshold=0.8):
     """Find optimal speakers and update database with GMM results"""
     db = EnhancedConversationDB()
-    features, metadata = db.get_audio_features_for_clustering()
+    features, metadata = db.get_data("audio_features", return_features=True)
     
     if len(features) < 4:
         return print(f"Need at least 4 samples, found {len(features)}")
@@ -78,11 +80,33 @@ def update_database_speakers(confidence_threshold=0.8):
     optimal_n = np.argmin(bic_scores) + 1
     print(f"🎯 Optimal speakers: {optimal_n} (BIC: {bic_scores[optimal_n-1]:.1f})")
     
-    # Train final GMM and update database
+    # Train final GMM and save model
     gmm = GaussianMixture(n_components=optimal_n, random_state=42)
     gmm.fit(X)
     
-    return db.update_speakers_with_gmm(gmm, scaler, confidence_threshold)
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    model_dir = os.path.join(base_dir, "models", "gmm")
+    os.makedirs(model_dir, exist_ok=True)
+    
+    with open(os.path.join(model_dir, "gmm_model.pkl"), "wb") as f:
+        pickle.dump({'gmm': gmm, 'scaler': scaler}, f)
+    
+    # Create updates dictionary with indexes and field values
+    updates_dict = {}
+    for i, (feature, meta) in enumerate(zip(features, metadata)):
+        feature_scaled = scaler.transform([feature])[0]
+        probs = gmm.predict_proba([feature_scaled])[0]
+        label = gmm.predict([feature_scaled])[0]
+        max_prob = np.max(probs)
+        
+        if max_prob >= confidence_threshold:
+            speaker_id = chr(65 + label)  # A, B, C...
+            updates_dict[i] = {'gmm_speaker': speaker_id, 'gmm_confidence': float(max_prob)}
+    
+    # Update database using index-based updates
+    updated_count = db.update_by_indexes(updates_dict, "audio_features")
+    print(f"🎯 Updated {updated_count}/{len(features)} speakers (confidence ≥ {confidence_threshold})")
+    return updated_count
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "auto":
