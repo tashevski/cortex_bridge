@@ -65,25 +65,7 @@ class EnhancedConversationDB:
                 }],
                 ids=[f"audio_{conversation_id}"]
             )
-    
-    def get_data(self, collection="audio_features", return_features=True):
-        """General function to get data from any collection"""
-        target_collection = self.audio_features if collection == "audio_features" else self.conversations
-        data = target_collection.get()
-        
-        if not data['documents']:
-            return [], []
-        
-        if return_features and collection == "audio_features":
-            # Parse features from documents
-            features_list = []
-            for doc in data['documents']:
-                feature_data = json.loads(doc)
-                features_list.append(feature_data['features'])
-            return features_list, data['metadatas']
-        
-        return data['documents'], data['metadatas']
-    
+
     def update_session_with_feedback(self, session_id: str, feedback: Dict):
         """Update session messages with feedback"""
         data = self.conversations.get()
@@ -107,7 +89,26 @@ class EnhancedConversationDB:
             'total_audio_features': self.audio_features.count(),
             'conversations_with_audio': sum(1 for m in conv_data['metadatas'] if m.get('has_audio_features'))
         }
-    
+
+    # functions for reading and updating the database
+    def get_data(self, collection="audio_features", return_features=True):
+        """General function to get data from any collection"""
+        target_collection = self.audio_features if collection == "audio_features" else self.conversations
+        data = target_collection.get()
+        
+        if not data['documents']:
+            return [], []
+        
+        if return_features and collection == "audio_features":
+            # Parse features from documents
+            features_list = []
+            for doc in data['documents']:
+                feature_data = json.loads(doc)
+                features_list.append(feature_data['features'])
+            return features_list, data['metadatas']
+        
+        return data['documents'], data['metadatas']
+        
     def update_by_indexes(self, updates_dict, collection="audio_features"):
         """General function to update database entries by index with field values"""
         target_collection = self.audio_features if collection == "audio_features" else self.conversations
