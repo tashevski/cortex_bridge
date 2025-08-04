@@ -57,9 +57,76 @@ class ConversationModeConfig:
     # Behavior settings
     enter_on_questions: bool = True  # Whether questions automatically enter Gemma mode
     
+    # Emotion-based triggering
+    enter_on_emotions: bool = False  # Whether emotions can trigger Gemma mode
+    trigger_emotions: List[str] = field(default_factory=lambda: [
+        'anger', 'frustration', 'sadness', 'fear', 'surprise'
+    ])  # Emotions that trigger entry
+    emotion_confidence_threshold: float = 0.7  # Minimum confidence for emotion trigger
+    emotion_window_size: int = 5  # Number of recent inputs to analyze
+    emotion_trigger_count: int = 2  # How many emotion instances needed in window
+    
     # Conversation context formatting
     max_context_messages: int = 6  # Max messages in context
     max_history_items: int = 100  # Max items to keep in history
+
+@dataclass
+class SpeechProcessorConfig:
+    """Configuration for SpeechProcessor (Voice Activity Detection)"""
+    sample_rate: int = 16000  # Audio sample rate
+    vad_aggressiveness: int = 2  # WebRTC VAD aggressiveness (0-3, higher = more aggressive)
+    silence_threshold: int = 3  # Frames of silence before marking as not speaking
+    energy_threshold: float = 500.0  # Fallback energy threshold for speech detection
+    frame_size: int = 960  # Audio frame size for VAD processing
+
+@dataclass
+class SpeakerDetectorConfig:
+    """Configuration for SpeakerDetector"""
+    # Core detection parameters
+    max_speakers: int = 8  # Maximum number of speakers to track
+    buffer_size: int = 16000  # Audio buffer size (1 second at 16kHz)
+    similarity_threshold: float = 0.40  # Threshold for speaker matching
+    min_speech_energy: float = 0.02  # Minimum energy to consider as speech
+    
+    # Speaker change detection
+    min_frames_for_new_speaker: int = 15  # Frames needed to register new speaker
+    min_frames_for_change: int = 4  # Frames needed to confirm speaker change
+    
+    # Model settings
+    use_ecapa_model: bool = True  # Use ECAPA-TDNN model (fallback to spectral if False)
+    model_save_dir: str = "models/spkrec-ecapa-voxceleb"  # Directory for speaker model
+    
+    # Embedding parameters
+    embedding_alpha: float = 0.05  # Moving average factor for embedding updates
+    normalize_embeddings: bool = True  # L2 normalize embeddings
+    
+    # Spectral fallback parameters (when ECAPA not available)
+    fft_size: int = 1024  # FFT size for spectral analysis
+    voice_freq_min: float = 80.0  # Minimum voice frequency (Hz)
+    voice_freq_max: float = 4000.0  # Maximum voice frequency (Hz)
+    spectral_bands: int = 8  # Number of frequency bands for features
+
+@dataclass
+class VoskModelConfig:
+    """Configuration for Vosk speech recognition model"""
+    # Model preference (in order of preference)
+    preferred_models: List[str] = field(default_factory=lambda: ["medium", "small"])
+    
+    # Available models
+    available_models: dict = field(default_factory=lambda: {
+        "small": {"name": "vosk-model-small-en-us-0.15", "accuracy": "basic"},
+        "medium": {"name": "vosk-model-en-us-0.22", "accuracy": "good"},
+        "large": {"name": "vosk-model-en-us-0.21", "accuracy": "high"}
+    })
+    
+    # Model directory
+    models_base_dir: str = "models"  # Base directory for model storage
+    
+    # Recognition parameters
+    sample_rate: int = 16000  # Audio sample rate for recognition
+    
+    # Fallback model if none found
+    fallback_model_name: str = "vosk-model-en-us-0.22"
 
 @dataclass
 class GemmaClientConfig:
@@ -77,5 +144,8 @@ class Config:
     model_preloader: ModelPreloaderConfig = field(default_factory=ModelPreloaderConfig)
     conversation_mode: ConversationModeConfig = field(default_factory=ConversationModeConfig)
     gemma_client: GemmaClientConfig = field(default_factory=GemmaClientConfig)
+    speech_processor: SpeechProcessorConfig = field(default_factory=SpeechProcessorConfig)
+    speaker_detector: SpeakerDetectorConfig = field(default_factory=SpeakerDetectorConfig)
+    vosk_model: VoskModelConfig = field(default_factory=VoskModelConfig)
 
 cfg = Config()

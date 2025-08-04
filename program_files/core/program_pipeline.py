@@ -12,18 +12,34 @@ from ai.optimized_gemma_client import OptimizedGemmaClient
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
 
-def load_vosk_model():
+def load_vosk_model(config=None):
+    """Load Vosk model using configuration"""
+    if config is None:
+        from utils.config import cfg
+        config = cfg.vosk_model
+    
     print("Loading Vosk model...")
-    try:
-        from config.vosk_config import get_vosk_model_path, get_vosk_model_info
-        model_path = get_vosk_model_path()
-        model_info = get_vosk_model_info()
-        print(f"   Using: {model_info['name']} ({model_info['accuracy']} accuracy)")
-    except ImportError:
-        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(current_dir, "models", "vosk-model-en-us-0.22")
-        print("   Using: vosk-model-en-us-0.22 (fallback)")
-    return Model(model_path)
+    
+    # Get base directory for models
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    models_dir = os.path.join(current_dir, config.models_base_dir)
+    
+    # Try preferred models in order
+    for model_type in config.preferred_models:
+        if model_type in config.available_models:
+            model_info = config.available_models[model_type]
+            model_path = os.path.join(models_dir, model_info["name"])
+            
+            if os.path.exists(model_path):
+                print(f"   Using: {model_info['name']} ({model_info['accuracy']} accuracy)")
+                return Model(model_path)
+            else:
+                print(f"   Model {model_info['name']} not found at {model_path}")
+    
+    # Fallback to configured fallback model
+    fallback_path = os.path.join(models_dir, config.fallback_model_name)
+    print(f"   Using fallback: {config.fallback_model_name}")
+    return Model(fallback_path)
 
 class EmotionClassifier:
     """Emotion classification using a HuggingFace pipeline."""
@@ -79,7 +95,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         handle_gemma_response(gemma_client, text, context, conversation_manager)
         return
     
-    if conversation_manager.should_enter_gemma_mode(text):
+    if conversation_manager.should_enter_gemma_mode(text, emotion_text, confidence):
         print("🤖 Entering Gemma conversation mode...")
         conversation_manager.start_new_conversation()
         conversation_manager.in_gemma_mode = True
@@ -104,20 +120,23 @@ def main():
     
     print("✅ Ollama initialization complete")
     
+    from utils.config import cfg
+    
     model = load_vosk_model()
     emotion_classifier = EmotionClassifier() # Load emotion classifier 
     conversation_manager = ConversationManager()
-    speech_processor = SpeechProcessor()
+    speech_processor = SpeechProcessor()  # Uses config defaults
     gemma_client = OptimizedGemmaClient()  # Uses config defaults
     
-    speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)
+    speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)  # Uses config defaults
     
     # Start initial session for listening mode
     conversation_manager.start_new_conversation()
     
-    rec = KaldiRecognizer(model, 16000)
+    sample_rate = cfg.vosk_model.sample_rate
+    rec = KaldiRecognizer(model, sample_rate)
     audio = pyaudio.PyAudio()
-    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000, 
+    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=sample_rate, 
                        input=True, frames_per_buffer=2048)
     stream.start_stream()
     
@@ -171,7 +190,7 @@ def main():
                     partial_text = ""
                     current_speaker_for_text = speaker_detector.current_speaker
                     frames_with_same_speaker = 0
-                    rec = KaldiRecognizer(model, 16000)
+                    rec = KaldiRecognizer(model, sample_rate)
             else:
                 frames_with_same_speaker = 0
             
