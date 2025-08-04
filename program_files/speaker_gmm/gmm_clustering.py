@@ -42,7 +42,7 @@ def cluster_speakers(n_speakers=2):
         return print(f"Need at least {n_speakers} samples, found {len(features)}")
     
     X = StandardScaler().fit_transform(features)
-    gmm = GaussianMixture(n_components=n_speakers, random_state=42)
+    gmm = GaussianMixture(n_components=n_speakers, covariance_type='diag', reg_covar=1e-4, random_state=42)
     labels = gmm.fit_predict(X)
     
     print(f"🎤 Found {n_speakers} speakers in {len(features)} samples")
@@ -68,7 +68,7 @@ def find_optimal_speakers():
     
     bic_scores = []
     for n in range(1, max_speakers + 1):
-        gmm = GaussianMixture(n_components=n, random_state=42)
+        gmm = GaussianMixture(n_components=n, covariance_type='diag', reg_covar=1e-4, random_state=42)
         gmm.fit(X)
         bic_scores.append(gmm.bic(X))
     
@@ -100,7 +100,7 @@ def update_database_speakers(confidence_threshold=0.8):
     # Find optimal number of speakers
     bic_scores = []
     for n in range(1, max_speakers + 1):
-        gmm = GaussianMixture(n_components=n, random_state=42)
+        gmm = GaussianMixture(n_components=n, covariance_type='diag', reg_covar=1e-4, random_state=42)
         gmm.fit(X)
         bic_scores.append(gmm.bic(X))
     
@@ -108,7 +108,7 @@ def update_database_speakers(confidence_threshold=0.8):
     print(f"🎯 Optimal speakers: {optimal_n} (BIC: {bic_scores[optimal_n-1]:.1f})")
     
     # Train final GMM and save model
-    gmm = GaussianMixture(n_components=optimal_n, random_state=42)
+    gmm = GaussianMixture(n_components=optimal_n, covariance_type='diag', reg_covar=1e-4, random_state=42)
     gmm.fit(X)
     
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -131,7 +131,7 @@ def update_database_speakers(confidence_threshold=0.8):
         if max_prob >= confidence_threshold:
             speaker_id = chr(65 + label)  # A, B, C...
             original_index = filtered_to_original[i]
-            updates_dict[original_index] = {'gmm_speaker': speaker_id, 'gmm_confidence': float(max_prob)}
+            updates_dict[original_index] = {'ml_speaker': speaker_id, 'ml_speaker_confidence': float(max_prob)}
     
     # Update database using index-based updates
     updated_count = db.update_by_indexes(updates_dict, "audio_features")
