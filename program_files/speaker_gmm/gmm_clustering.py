@@ -12,10 +12,31 @@ import pickle
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.enhanced_conversation_db import EnhancedConversationDB
 
+def filter_consistent_dimensions(features, metadata):
+    """Filter features to most common dimension size for GMM clustering"""
+    if not features:
+        return [], []
+    
+    dimensions = [len(f) for f in features]
+    most_common_dim = max(set(dimensions), key=dimensions.count)
+    
+    filtered_features = []
+    filtered_metadata = []
+    for feat, meta in zip(features, metadata):
+        if len(feat) == most_common_dim:
+            filtered_features.append(feat)
+            filtered_metadata.append(meta)
+    
+    print(f"📊 Using {len(filtered_features)}/{len(features)} samples with {most_common_dim}D features")
+    return filtered_features, filtered_metadata
+
 def cluster_speakers(n_speakers=2):
     """Cluster audio features using GMM to identify speakers"""
     db = EnhancedConversationDB()
     features, metadata = db.get_data("audio_features", return_features=True)
+    
+    # Filter to consistent dimensions for GMM
+    features, metadata = filter_consistent_dimensions(features, metadata)
     
     if len(features) < n_speakers:
         return print(f"Need at least {n_speakers} samples, found {len(features)}")
@@ -35,6 +56,9 @@ def find_optimal_speakers():
     """Find optimal number of speakers using BIC score"""
     db = EnhancedConversationDB()
     features, metadata = db.get_data("audio_features", return_features=True)
+    
+    # Filter to consistent dimensions for GMM
+    features, metadata = filter_consistent_dimensions(features, metadata)
     
     if len(features) < 4:
         return print(f"Need at least 4 samples for optimization, found {len(features)}")
@@ -61,7 +85,10 @@ def find_optimal_speakers():
 def update_database_speakers(confidence_threshold=0.8):
     """Find optimal speakers and update database with GMM results"""
     db = EnhancedConversationDB()
-    features, metadata = db.get_data("audio_features", return_features=True)
+    all_features, all_metadata = db.get_data("audio_features", return_features=True)
+    
+    # Filter to consistent dimensions for GMM
+    features, metadata = filter_consistent_dimensions(all_features, all_metadata)
     
     if len(features) < 4:
         return print(f"Need at least 4 samples, found {len(features)}")
@@ -91,8 +118,10 @@ def update_database_speakers(confidence_threshold=0.8):
     with open(os.path.join(model_dir, "gmm_model.pkl"), "wb") as f:
         pickle.dump({'gmm': gmm, 'scaler': scaler}, f)
     
-    # Create updates dictionary with indexes and field values
+    # Create updates dictionary - map filtered indexes back to original indexes
     updates_dict = {}
+    filtered_to_original = {i: all_metadata.index(meta) for i, meta in enumerate(metadata)}
+    
     for i, (feature, meta) in enumerate(zip(features, metadata)):
         feature_scaled = scaler.transform([feature])[0]
         probs = gmm.predict_proba([feature_scaled])[0]
@@ -101,11 +130,12 @@ def update_database_speakers(confidence_threshold=0.8):
         
         if max_prob >= confidence_threshold:
             speaker_id = chr(65 + label)  # A, B, C...
-            updates_dict[i] = {'gmm_speaker': speaker_id, 'gmm_confidence': float(max_prob)}
+            original_index = filtered_to_original[i]
+            updates_dict[original_index] = {'gmm_speaker': speaker_id, 'gmm_confidence': float(max_prob)}
     
     # Update database using index-based updates
     updated_count = db.update_by_indexes(updates_dict, "audio_features")
-    print(f"🎯 Updated {updated_count}/{len(features)} speakers (confidence ≥ {confidence_threshold})")
+    print(f"🎯 Updated {updated_count}/{len(all_features)} speakers (confidence ≥ {confidence_threshold})")
     return updated_count
 
 if __name__ == "__main__":
