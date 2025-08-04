@@ -8,7 +8,7 @@ from typing import Optional, Dict
 from vosk import Model, KaldiRecognizer
 from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
-from ai.gemma_client import GemmaClient
+from ai.optimized_gemma_client import OptimizedGemmaClient
 from utils.text_utils import is_question
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 
@@ -78,7 +78,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
             return
         
         context = conversation_manager.get_conversation_context()
-        response = gemma_client.generate_response(text, context)
+        response = gemma_client.generate_response_optimized(text, context)
         if response:
             print(f"🤖 Gemma: {response}")
             conversation_manager.add_to_history(response, False, "Gemma")
@@ -92,7 +92,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         if is_question(text):
             conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
-        response = gemma_client.generate_response(text)
+        response = gemma_client.generate_response_optimized(text)
         if response:
             print(f"🤖 Gemma: {response}")
             conversation_manager.add_to_history(response, False, "Gemma")
@@ -116,7 +116,7 @@ def main():
     emotion_classifier = EmotionClassifier() # Load emotion classifier 
     conversation_manager = ConversationManager()
     speech_processor = SpeechProcessor()
-    gemma_client = GemmaClient("gemma3n:e4b")
+    gemma_client = OptimizedGemmaClient("gemma3n:e2b")  # Start with faster model
     
     speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)
     

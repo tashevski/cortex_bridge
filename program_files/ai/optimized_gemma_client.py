@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """Optimized GemmaClient with smart loading strategies"""
 
-import sys
-import os
-sys.path.append('program_files')
-
-from ai.gemma_client import GemmaClient
-from smart_model_selector import SmartModelSelector
-from model_preloader import ModelPreloader
+from .gemma_client import GemmaClient
+from .smart_model_selector import SmartModelSelector  
+from .model_preloader import ModelPreloader
 import requests
 import time
 
