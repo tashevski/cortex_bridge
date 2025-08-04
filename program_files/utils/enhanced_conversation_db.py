@@ -25,7 +25,8 @@ class EnhancedConversationDB:
     
     def add_conversation_with_audio(self, session_id: str, text: str, speaker: str, 
                                   role: str, is_gemma_mode: bool, audio_features: Optional[Dict] = None,
-                                  feedback: Optional[Dict] = None, conversation_context: Optional[str] = None):
+                                  feedback: Optional[Dict] = None, conversation_context: Optional[str] = None,
+                                  emotion_text: Optional[str] = None, confidence: Optional[float] = None):
         """Add conversation with audio features"""
         conversation_id = f"{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         
@@ -38,6 +39,10 @@ class EnhancedConversationDB:
             'timestamp': datetime.now().isoformat(),
             'has_audio_features': audio_features is not None
         }
+        if emotion_text is not None:
+            metadata['emotion'] = emotion_text
+        if confidence is not None:
+            metadata['emotion_confidence'] = confidence
         
         if feedback:
             metadata['feedback_helpful'] = str(feedback.get('helpful', ''))

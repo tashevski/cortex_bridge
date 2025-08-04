@@ -25,8 +25,28 @@ def load_vosk_model():
         print("   Using: vosk-model-en-us-0.22 (fallback)")
     return Model(model_path)
 
+class EmotionClassifier:
+    """Emotion classification using a HuggingFace pipeline."""
+
+    def __init__(self):
+        print("Loading emotion classification model...")
+        from transformers import pipeline
+        self.classifier = pipeline(
+            "text-classification",
+            model="j-hartmann/emotion-english-distilroberta-base",
+            return_all_scores=True
+        )
+
+    def process(self, text: str):
+        """Return the top emotion label and confidence for the given text."""
+        emotions = self.classifier(text)[0]
+        top_emotion = max(emotions, key=lambda x: x['score'])
+        emotion_text = f"{top_emotion['label'].title()}"
+        confidence = top_emotion['score']
+        return emotion_text, confidence
+
 def process_text(text: str, conversation_manager: ConversationManager, gemma_client: GemmaClient, 
-                speaker_detector, audio_features: Optional[Dict] = None):
+                speaker_detector, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
     """Process transcribed text based on conversation state"""
     
     if conversation_manager.waiting_for_feedback:
@@ -50,7 +70,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         return
     
     if conversation_manager.in_gemma_mode:
-        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
+        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
         if conversation_manager.should_exit_gemma_mode(text):
             print("Was that helpful?")
@@ -64,22 +84,22 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
             conversation_manager.add_to_history(response, False, "Gemma")
         return
     
-    # if conversation_manager.should_enter_gemma_mode(text):
-    #     print("🤖 Entering Gemma conversation mode...")
-    #     conversation_manager.start_new_conversation()
-    #     conversation_manager.in_gemma_mode = True
+    if conversation_manager.should_enter_gemma_mode(text):
+        print("🤖 Entering Gemma conversation mode...")
+        conversation_manager.start_new_conversation()
+        conversation_manager.in_gemma_mode = True
         
-    #     if is_question(text):
-    #         conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
+        if is_question(text):
+            conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
-    #     response = gemma_client.generate_response(text)
-    #     if response:
-    #         print(f"🤖 Gemma: {response}")
-    #         conversation_manager.add_to_history(response, False, "Gemma")
+        response = gemma_client.generate_response(text)
+        if response:
+            print(f"🤖 Gemma: {response}")
+            conversation_manager.add_to_history(response, False, "Gemma")
     else:
         print("⏭️  Not a question - staying in listening mode")
         # Save listening mode conversations too!
-        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features)
+        conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
 
 def main():
     """Main speech processing pipeline"""
@@ -93,6 +113,7 @@ def main():
     print("✅ Ollama initialization complete")
     
     model = load_vosk_model()
+    emotion_classifier = EmotionClassifier() # Load emotion classifier 
     conversation_manager = ConversationManager()
     speech_processor = SpeechProcessor()
     gemma_client = GemmaClient("gemma3n:e4b")
@@ -123,6 +144,7 @@ def main():
         print(f"   {speaker_info}")
         
         audio_features = speaker_detector.get_current_features()
+        # We skip emotion classification here to avoid duplicate costly inference.
         process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features)
         if audio_features:
             speaker_detector.clear_feature_buffer()
@@ -183,7 +205,10 @@ def main():
                     print(f"   {speaker_info}")
                 
                 audio_features = speaker_detector.get_current_features()
-                process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features)
+                # Determine emotion for full recognized text
+                emotion_text, confidence = emotion_classifier.process(text)
+                print(f"🎭 Emotion: {emotion_text} (Confidence: {confidence:.2f})")
+                process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features, emotion_text, confidence)
                 
                 if audio_features:
                     speaker_detector.clear_feature_buffer()

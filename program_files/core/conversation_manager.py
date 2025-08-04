@@ -40,7 +40,7 @@ class ConversationManager:
         """Check if we should exit Gemma conversation mode"""
         return contains_keywords(text.lower().strip(), EXIT_KEYWORDS)
     
-    def add_to_history(self, text: str, is_user: bool = True, speaker_name: str = None, audio_features: Optional[Dict] = None):
+    def add_to_history(self, text: str, is_user: bool = True, speaker_name: str = None, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
         """Add message to conversation history and enhanced vector database"""
         role = "user" if is_user else "assistant"
         self.gemma_conversation_history.append({"role": role, "content": text})
@@ -56,7 +56,9 @@ class ConversationManager:
                 is_gemma_mode=self.in_gemma_mode,
                 audio_features=audio_features,
                 feedback=self.last_feedback,
-                conversation_context=self.get_conversation_context()
+                conversation_context=self.get_conversation_context(),
+                emotion_text=emotion_text,
+                confidence=confidence
             )
     
     def get_conversation_context(self) -> str:
