@@ -1,187 +1,134 @@
 # Gemma Fine-tuning System
 
-This system allows you to fine-tune Gemma models using your conversation data with feedback ratings and create new Ollama model versions.
+A clean, organized system for fine-tuning Gemma models with LoRA and Ollama integration.
 
-## Features
+## 📁 Project Structure
 
-- 🔥 **LoRA Fine-tuning**: Efficient fine-tuning using Low-Rank Adaptation
-- 📊 **Feedback-based Training**: Uses `feedback_helpful` ratings to improve model quality
-- 🦙 **Ollama Integration**: Creates new model versions for Ollama (doesn't overwrite existing)
-- ⚙️ **Configurable**: Multiple preset configurations for different use cases
-- 📈 **Validation**: Train/validation splits with early stopping
-- 🔧 **Advanced Options**: Support for both Gemma-2B and Gemma-7B models
+```
+fine_tuning/
+├── src/                          # Core fine-tuning modules
+│   ├── advanced_fine_tuner.py    # Full-featured fine-tuner with LoRA
+│   ├── gemma_fine_tuner.py       # Basic fine-tuning implementation  
+│   └── minimal_fine_tuner.py     # Lightweight fine-tuner
+├── config/                       # Configuration files
+│   ├── config.py                 # Main configuration with presets
+│   └── config_minimal.py         # Minimal configuration options
+├── utils/                        # Utility scripts
+│   ├── evaluate_model.py         # Model evaluation and comparison
+│   └── setup.sh                  # Environment setup script
+├── docs/                         # Documentation
+│   ├── README.md                 # Detailed documentation
+│   └── README_minimal.md         # Quick start guide
+├── examples/                     # Example usage scripts
+│   └── run.py                    # Simple example runner
+├── data/                         # Training data
+│   ├── training_data.json        # Your conversation data
+│   └── example_data.json         # Example data format
+├── run_fine_tuning.py           # Main entry point
+└── requirements.txt             # Python dependencies
+```
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Install Dependencies
-
+### 1. Setup Environment
 ```bash
 pip install -r requirements.txt
+# or
+bash utils/setup.sh
 ```
 
-### 2. Prepare Your Data
-
-Your data should be in `data/training_data.json` with this format:
-
-```json
-{
-    "conversation_1": {
-        "feedback_helpful": "True",
-        "full_text": "Speaker_A: can you help me\nGemma: Yes, I can definitely help!...",
-        "session_id": "session_20250805_115307_390",
-        "timestamp": "2025-08-05 11:53:07.390773",
-        "message_count": 5
-    }
-}
-```
-
-### 3. Run Fine-tuning
-
-**Quick test (1 epoch, small model):**
+### 2. Run Fine-tuning
 ```bash
+# Quick test (1 epoch, small model)
 python run_fine_tuning.py --preset quick_test
-```
 
-**Production training (5 epochs, larger model):**
-```bash
+# Production training (5 epochs, larger model)
 python run_fine_tuning.py --preset production --model-name my-custom-gemma
-```
 
-**Default training:**
-```bash
+# Default training
 python run_fine_tuning.py
 ```
 
-## Configuration Presets
+### 3. Evaluate Model
+```bash
+python utils/evaluate_model.py my-custom-gemma gemma:2b
+```
 
-- **`default`**: Balanced settings for most use cases
-- **`quick_test`**: Fast training for testing (1 epoch, Gemma-2B)
-- **`production`**: High-quality training (5 epochs, Gemma-7B, advanced LoRA)
+## 🎯 Key Features
+
+- **📦 Organized Structure**: Clean separation of core, config, utils, and docs
+- **🔥 LoRA Fine-tuning**: Efficient training using Low-Rank Adaptation
+- **📊 Feedback-based**: Uses `feedback_helpful` ratings for quality training
+- **🦙 Ollama Integration**: Creates versioned models without overwriting
+- **⚙️ Multiple Presets**: Quick test, production, and experimental configs
+- **🧪 Model Evaluation**: Built-in testing and comparison tools
+
+## 📋 Configuration Presets
+
+- **`default`**: Balanced settings (3 epochs, Gemma-2B, LoRA)
+- **`quick_test`**: Fast training (1 epoch, smaller batches)
+- **`production`**: High-quality (5 epochs, Gemma-7B, advanced LoRA)
 - **`experimental`**: Includes negative examples and advanced filtering
 
-## Advanced Usage
+## 💻 Advanced Usage
 
 ### Custom Configuration
-
-You can modify `config.py` to create custom configurations:
-
 ```python
+from config.config import FineTuningConfig
+
 custom_config = FineTuningConfig(
     base_model="google/gemma-7b-it",
     num_epochs=4,
     batch_size=2,
     learning_rate=3e-5,
     use_lora=True,
-    lora_r=32,
-    ollama_model_name="my-expert-gemma"
+    lora_r=32
 )
 ```
 
-### Direct Script Usage
-
-```bash
-# Basic fine-tuning
-python advanced_fine_tuner.py --config production --name my-model
-
-# Custom data path
-python advanced_fine_tuner.py --data /path/to/my/data.json --config quick_test
-
-# Skip Ollama model creation
-python advanced_fine_tuner.py --no-ollama
-```
-
-### Simple Fine-tuner
-
-For basic use cases, use the simple fine-tuner:
-
-```bash
-python gemma_fine_tuner.py --data data/training_data.json --name my-basic-model
-```
-
-## Data Filtering Options
-
-The system can filter conversations based on:
-
-- **Message count**: Min/max number of messages per conversation
-- **Feedback quality**: Only use helpful conversations (`feedback_helpful: True`)
-- **Content length**: Remove empty or too short conversations
-- **Negative examples**: Optionally include unhelpful conversations for contrast learning
-
-Configure these in `config.py`:
-
+### Direct Module Usage
 ```python
-config = FineTuningConfig(
-    min_message_count=3,
-    max_message_count=50,
-    filter_by_feedback=True,
-    include_negative_examples=False
-)
+from src.advanced_fine_tuner import AdvancedGemmaFineTuner
+from config.config import get_config
+
+config = get_config("production")
+tuner = AdvancedGemmaFineTuner(config)
+model_path, ollama_name = tuner.run_fine_tuning(model_name="my-model")
 ```
 
-## Output
+## 📖 Documentation
 
-After fine-tuning, you'll get:
+- **[docs/README.md](docs/README.md)**: Complete feature documentation
+- **[docs/README_minimal.md](docs/README_minimal.md)**: Quick start guide
+- **[examples/](examples/)**: Usage examples and sample scripts
 
-1. **Fine-tuned model**: Saved in `models/gemma-finetuned-YYYYMMDD_HHMMSS/`
-2. **Ollama model**: Available via `ollama run model-name`
-3. **Training logs**: Detailed logs of the training process
-4. **Training info**: JSON file with training metadata
+## 🔧 Data Format
 
-## Ollama Integration
+Your data should be in `data/training_data.json`:
 
-The system automatically creates Ollama-compatible models:
-
-```bash
-# After fine-tuning completes:
-ollama run my-custom-gemma
-
-# List your models:
-ollama list
-
-# Remove old versions if needed:
-ollama rm old-model-name
+```json
+{
+  "conversation_1": {
+    "feedback_helpful": "True",
+    "full_text": "Speaker_A: question\nGemma: answer\n...",
+    "session_id": "session_id",
+    "timestamp": "timestamp",
+    "message_count": 5
+  }
+}
 ```
 
-## Hardware Requirements
+## 🎉 Output
 
-- **GPU**: Recommended for faster training (CUDA-compatible)
-- **RAM**: 16GB+ recommended for Gemma-7B, 8GB+ for Gemma-2B
-- **Storage**: 10-20GB free space for model weights
+After training:
+- Fine-tuned model in `models/gemma-finetuned-YYYYMMDD_HHMMSS/`
+- Ollama model available via `ollama run model-name`
+- Training logs and metadata included
 
-## Tips for Better Results
+## 🤝 Contributing
 
-1. **Quality Data**: Use conversations with clear feedback ratings
-2. **Balanced Dataset**: Include both helpful and unhelpful examples
-3. **Sufficient Data**: At least 100+ conversations for meaningful fine-tuning
-4. **Validation**: Use validation split to monitor overfitting
-5. **LoRA Settings**: Higher `lora_r` values for more complex adaptations
-
-## Troubleshooting
-
-**Out of Memory**: Reduce `batch_size` or `max_length` in config
-**Slow Training**: Enable GPU support and use LoRA
-**Poor Results**: Increase training data quality and quantity
-**Ollama Errors**: Ensure Ollama is installed and running
-
-## File Structure
-
-```
-fine_tuning/
-├── data/
-│   └── training_data.json          # Your conversation data
-├── models/                         # Output directory for fine-tuned models
-├── config.py                       # Configuration settings
-├── gemma_fine_tuner.py            # Simple fine-tuning script
-├── advanced_fine_tuner.py         # Advanced fine-tuning with LoRA
-├── run_fine_tuning.py             # Easy-to-use runner script
-├── requirements.txt               # Python dependencies
-└── README.md                      # This file
-```
-
-## Next Steps
-
-1. Fine-tune your first model with the quick_test preset
-2. Evaluate the results with test conversations
-3. Adjust configuration based on results
-4. Run production training for your final model
-5. Deploy and use your custom Gemma model!
+The modular structure makes it easy to:
+- Add new fine-tuning strategies in `src/`
+- Create new configuration presets in `config/`
+- Add evaluation metrics in `utils/`
+- Include usage examples in `examples/`
