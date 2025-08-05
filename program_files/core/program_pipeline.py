@@ -158,6 +158,7 @@ def main():
     speech_processor = SpeechProcessor()  # Uses config defaults
     gemma_client = OptimizedGemmaClient()  # Uses config defaults
     tts_file = OfflineTTSFile() # offline tts 
+    #tts_file.set_reference_audio("/Users/alexander/Library/CloudStorage/Dropbox/Personal Research/cortex_bridge/program_files/tts/voice_example.wav")
     
     speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)  # Uses config defaults
     

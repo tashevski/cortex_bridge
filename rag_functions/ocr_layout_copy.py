@@ -116,30 +116,67 @@ def id_table(text):
     return bool(re.match(pattern, text))
 
 
-# load necessary models ################################################################################################
-model = lp.Detectron2LayoutModel(
-    config_path='lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config',
-    model_path='./model_final.pth',  # use your actual path
-    extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.75],
-    label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"},
-)
+# Global model variable - will be loaded when needed
+model = None
+
+def _load_layout_model():
+    """Load the layout detection model lazily"""
+    global model
+    if model is None:
+        try:
+            print("🔄 Loading layout model...")
+            model_path = '/Users/alexander/Library/CloudStorage/Dropbox/Personal Research/cortex_bridge/rag_functions/models/model_final.pth'
+            config_path = 'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config'
+            model = lp.Detectron2LayoutModel(
+                config_path,                 # YAML config (tiny download or cached locally)
+                model_path=model_path,       # Your local weights file
+                extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
+                label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"},
+            )
+            print("✅ Layout model loaded successfully from local file!")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not load layout model: {e}")
+            print(f"🔍 Error type: {type(e).__name__}")
+            print("📄 Falling back to simple text extraction")
+            return None
+    return model
 
 
 # Primary Function ############################################################################################################
 def extract_text_and_layout(pdf_path):
+    """Extract text and layout from PDF, with fallback to simple OCR if layout model fails"""
+    
+    # Try to load the layout model
+    layout_model = _load_layout_model()
     
     # pull out the pages 
-    pages = convert_from_path(
-        pdf_path,
-        dpi=300,
-        poppler_path="/opt/homebrew/bin"  # ← update this path if different
-    )
+    try:
+        pages = convert_from_path(
+            pdf_path,
+            dpi=300,
+            poppler_path="/opt/homebrew/bin"  # ← update this path if different
+        )
+    except Exception as e:
+        print(f"❌ Error converting PDF: {e}")
+        return "Error: Could not process PDF file"
 
-    
     total_text = ""
-    for i in range(len(pages)):
-        image = pages[i]
-        layout = model.detect(image)
+    for i, image in enumerate(pages):
+        if layout_model is not None:
+            # Use layout detection if available
+            try:
+                layout = layout_model.detect(image)
+            except Exception as e:
+                print(f"⚠️ Layout detection failed for page {i+1}: {e}")
+                # Fallback to simple OCR for this page
+                page_text = pytesseract.image_to_string(image)
+                total_text += f"\n--- Page {i+1} ---\n{page_text}\n"
+                continue
+        else:
+            # Simple OCR fallback when no layout model
+            page_text = pytesseract.image_to_string(image)
+            total_text += f"\n--- Page {i+1} ---\n{page_text}\n"
+            continue
 
         # Pull out the text chunks
         layout = inflate_layout(layout, top=15, bottom=3, left=6, right=6)
