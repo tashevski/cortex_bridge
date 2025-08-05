@@ -12,30 +12,16 @@ def handle_gemma_response(gemma_client, text: str, context: str, conversation_ma
         latency_metrics = gemma_client.get_last_latency_metrics()
         conversation_manager.add_to_history(response, False, "Gemma", latency_metrics=latency_metrics)
         
-        # Convert response to speech and play it
+        # Convert response to speech using streaming TTS
         if tts_file:
             try:
-                # Generate a unique filename for this response
-                import time
-                filename = f"response_{int(time.time())}.wav"
-                
                 # Clean the response text before TTS processing
                 cleaned_response = response.strip()
-                if len(cleaned_response) > 500:  # Limit length to avoid very long audio
-                    cleaned_response = cleaned_response[:500] + "..."
                 
-                if tts_file.convert_to_file(cleaned_response, filename):
-                    print("🔊 Playing response...")
-                    tts_file.play_file(filename)
-                    
-                    # Clean up the audio file after playback
-                    import os
-                    try:
-                        os.remove(filename)
-                    except:
-                        pass  # Ignore cleanup errors
-                else:
-                    print("❌ Failed to generate speech for response")
+                # Use streaming TTS for better responsiveness
+                print("🔊 Streaming response to speech...")
+                if not tts_file.stream_text_to_speech(cleaned_response, chunk_length=80):
+                    print("❌ Failed to stream speech for response")
             except Exception as e:
                 print(f"❌ TTS error: {e}")
     

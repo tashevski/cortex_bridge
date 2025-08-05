@@ -2,6 +2,9 @@ from TTS.api import TTS
 import pygame
 import os
 import re
+import threading
+import time
+from queue import Queue
 
 def clean_text_for_tts(text):
     """Remove emojis and other problematic characters for TTS processing"""
@@ -26,14 +29,50 @@ def clean_text_for_tts(text):
     
     return cleaned
 
+def split_text_into_chunks(text, max_chunk_length=100):
+    """Split text into smaller chunks for streaming TTS"""
+    # Split by sentences first
+    sentences = re.split(r'[.!?]+', text)
+    chunks = []
+    current_chunk = ""
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+            
+        # If adding this sentence would exceed the limit, save current chunk and start new one
+        if len(current_chunk) + len(sentence) > max_chunk_length and current_chunk:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence
+        else:
+            if current_chunk:
+                current_chunk += ". " + sentence
+            else:
+                current_chunk = sentence
+    
+    # Add the last chunk if it exists
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    
+    return chunks
+
 class OfflineTTSFile:
     def __init__(self):
         try:
-            self.tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False)
+            self.tts = TTS(model_name="tts_models/en/vctk/vits", progress_bar=False)
             print("TTS initialized successfully!")
         except Exception as e:
             print(f"Error initializing TTS: {e}")
             self.tts = None
+        
+        # Initialize pygame mixer for streaming
+        try:
+            pygame.mixer.init()
+            self.mixer_initialized = True
+        except Exception as e:
+            print(f"Error initializing pygame mixer: {e}")
+            self.mixer_initialized = False
     
     def convert_to_file(self, text, filename="output.wav"):
         """Convert text to audio file"""
@@ -57,7 +96,6 @@ class OfflineTTSFile:
     def play_file(self, filename):
         """Play audio file using pygame"""
         try:
-            pygame.mixer.init()
             pygame.mixer.music.load(filename)
             pygame.mixer.music.play()
             
@@ -68,6 +106,71 @@ class OfflineTTSFile:
             print("Playback finished!")
         except Exception as e:
             print(f"Error playing file: {e}")
+    
+    def stream_text_to_speech(self, text, chunk_length=100):
+        """Stream text to speech in chunks for real-time playback"""
+        if not self.tts or not self.mixer_initialized:
+            print("❌ TTS or mixer not initialized")
+            return False
+        
+        try:
+            # Clean the text
+            cleaned_text = clean_text_for_tts(text)
+            if not cleaned_text:
+                print("⚠️  Text was empty after cleaning, skipping TTS")
+                return False
+            
+            # Split into chunks
+            chunks = split_text_into_chunks(cleaned_text, chunk_length)
+            
+            if not chunks:
+                return False
+            
+            print(f"🔊 Streaming {len(chunks)} chunks...")
+            
+            # Process and play each chunk
+            for i, chunk in enumerate(chunks):
+                if not chunk.strip():
+                    continue
+                
+                # Generate unique filename for this chunk
+                chunk_filename = f"chunk_{int(time.time())}_{i}.wav"
+                
+                try:
+                    print(f"🎵 Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
+                    
+                    # Generate audio for this chunk
+                    self.tts.tts_to_file(text=chunk, file_path=chunk_filename)
+                    
+                    # Play the chunk
+                    pygame.mixer.music.load(chunk_filename)
+                    pygame.mixer.music.play()
+                    
+                    # Wait for this chunk to finish playing
+                    while pygame.mixer.music.get_busy():
+                        pygame.time.Clock().tick(10)
+                    
+                    # Clean up the chunk file
+                    try:
+                        os.remove(chunk_filename)
+                    except:
+                        pass
+                        
+                except Exception as e:
+                    print(f"❌ Error processing chunk {i+1}: {e}")
+                    # Clean up file if it exists
+                    try:
+                        os.remove(chunk_filename)
+                    except:
+                        pass
+                    continue
+            
+            print("✅ Streaming TTS complete!")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error in streaming TTS: {e}")
+            return False
 
 # # Usage
 # tts_file = OfflineTTSFile()
