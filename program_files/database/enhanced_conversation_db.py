@@ -6,7 +6,7 @@ import os
 import json
 import pickle
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from .db_helpers import create_conversation_id, create_metadata, calculate_analytics, analyze_session
 
@@ -229,3 +229,78 @@ class EnhancedConversationDB:
                 'model': meta.get('model', 'unknown')
             } for i, (meta, doc) in enumerate(zip(results['metadatas'], results.get('documents', [])))]
         except: return []
+    
+    def get_gemma_conversations_for_finetuning(self, days_back: int = 1) -> Dict[str, Any]:
+        """Get Gemma conversations with feedback for fine-tuning, save as JSON"""
+        results = self.conversations.get(include=['metadatas', 'documents'])
+        if not results.get('metadatas'): return {}
+        
+        end_time = datetime.now()
+        start_time = end_time - timedelta(days=days_back)
+        
+        # Group conversations by session within date range
+        sessions = {}
+        for i, metadata in enumerate(results['metadatas']):
+            timestamp_str = metadata.get('timestamp')
+            if not timestamp_str: continue
+            
+            try:
+                conv_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')) if 'T' in timestamp_str else datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                if start_time <= conv_time <= end_time:
+                    session_id = metadata.get('session_id')
+                    if session_id not in sessions:
+                        sessions[session_id] = []
+                    sessions[session_id].append({
+                        'text': results['documents'][i],
+                        'metadata': metadata,
+                        'timestamp': conv_time,
+                        'feedback_helpful': metadata.get('feedback_helpful', '')
+                    })
+            except: continue
+        
+        # Build result dictionary for sessions with Gemma
+        result_dict = {}
+        conversation_counter = 1
+        
+        for session_id, session_conversations in sessions.items():
+            if not any('[GEMMA]' in conv['text'] for conv in session_conversations):
+                continue
+            
+            session_conversations.sort(key=lambda x: x['timestamp'])
+            
+            # Get session feedback
+            session_feedback = next((conv['feedback_helpful'] for conv in session_conversations 
+                                   if conv['feedback_helpful'] and conv['feedback_helpful'] != 'unknown'), None)
+            
+            # Build conversation text
+            conversation_lines = []
+            for conv in session_conversations:
+                full_text = conv['text']
+                if ': ' in full_text:
+                    speaker_text = full_text.split(': ', 1)[1]
+                else:
+                    speaker_text = full_text
+                speaker_text = speaker_text.replace(' [GEMMA]', '')
+                speaker = conv['metadata'].get('speaker', 'Unknown')
+                conversation_lines.append(f"{speaker}: {speaker_text}")
+            
+            result_dict[f"conversation_{conversation_counter}"] = {
+                "feedback_helpful": session_feedback,
+                "full_text": "\n".join(conversation_lines),
+                "session_id": session_id,
+                "timestamp": session_conversations[0]['timestamp'].isoformat(),
+                "message_count": len(session_conversations)
+            }
+            conversation_counter += 1
+        
+        # Save to JSON file
+        output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'fine_tuning', 'data')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        filename = f"gemma_conversations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filepath = os.path.join(output_dir, filename)
+        
+        with open(filepath, 'w') as f:
+            json.dump(result_dict, f, indent=2, default=str)
+        
+        return result_dict

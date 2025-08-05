@@ -1,0 +1,18 @@
+{
+    "timestamp": "2025-08-05 15:17:18.525941",
+    "data": {
+        "name": "John Doe",
+        "age": 30,
+        "city": "New York",
+        "skills": [
+            "Python",
+            "JavaScript",
+            "SQL"
+        ],
+        "active": true,
+        "metadata": {
+            "created": "2024-01-01",
+            "version": "1.0"
+        }
+    }
+}
