@@ -1,0 +1,23 @@
+{
+    "conversation_1": {
+        "feedback_helpful": "True",
+        "full_text": "Speaker_A: Hello, can you help me with a math problem?\nGemma: Of course! I'd be happy to help you with math. What specific problem are you working on?\nSpeaker_A: What's 15 multiplied by 23?\nGemma: 15 × 23 = 345\n\nTo break this down:\n15 × 23 = 15 × (20 + 3) = (15 × 20) + (15 × 3) = 300 + 45 = 345\n\nIs there anything else you'd like help with?\nSpeaker_A: Thank you, that's perfect!",
+        "session_id": "session_example_001",
+        "timestamp": "2025-08-05 10:00:00.000000",
+        "message_count": 5
+    },
+    "conversation_2": {
+        "feedback_helpful": "false",
+        "full_text": "Speaker_A: What's the weather like today?\nGemma: I don't have access to real-time weather information. I can't check current weather conditions for you.\nSpeaker_A: Can you at least tell me about weather in general?\nGemma: Weather is a thing that happens outside. It can be sunny or not sunny. Sometimes it rains.\nSpeaker_A: That's not very helpful",
+        "session_id": "session_example_002",
+        "timestamp": "2025-08-05 10:15:00.000000",
+        "message_count": 5
+    },
+    "conversation_3": {
+        "feedback_helpful": true,
+        "full_text": "Speaker_A: I'm feeling stressed about work. Any advice?\nGemma: I understand that work stress can be really challenging. Here are some strategies that might help:\n\n1. **Break tasks into smaller steps** - Large projects feel less overwhelming when divided into manageable pieces\n2. **Take regular breaks** - Even 5-10 minute breaks can help reset your mind\n3. **Practice deep breathing** - It activates your parasympathetic nervous system and reduces stress\n4. **Set boundaries** - It's okay to say no to additional tasks when you're already stretched thin\n5. **Talk to someone** - Whether it's a colleague, friend, or professional, sharing your concerns can provide relief\n\nWhat specific aspect of work is causing you the most stress? I might be able to offer more targeted advice.\nSpeaker_A: Thanks, this is really helpful. I think it's mainly the deadline pressure.\nGemma: Deadline pressure is one of the most common work stressors. Here are some specific strategies for managing tight deadlines:\n\n**Time Management:**\n- Use the Pomodoro Technique (25-minute focused work sessions)\n- Prioritize tasks using the Eisenhower Matrix (urgent vs important)\n- Block time for deep work without interruptions\n\n**Communication:**\n- Keep your manager updated on progress regularly\n- Ask for help or deadline extensions early if needed\n- Clarify expectations and deliverables upfront\n\n**Stress Management:**\n- Remember that done is better than perfect\n- Focus on what you can control\n- Plan something enjoyable after the deadline as a reward\n\nWould any of these approaches work well for your current situation?",
+        "session_id": "session_example_003",
+        "timestamp": "2025-08-05 10:30:00.000000",
+        "message_count": 6
+    }
+}
