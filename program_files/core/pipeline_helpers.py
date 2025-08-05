@@ -65,18 +65,10 @@ def handle_special_commands(text: str, gemma_client, conversation_manager) -> bo
     
     if text_lower == "monitoring status":
         from ai.adaptive_system_monitor import adaptive_monitor
-        status = adaptive_monitor.get_status_report()
-        print(f"""🤖 Adaptive System Monitor Status:
-            Current Mode: {status.get('system_mode', 'unknown')}
-            Monitoring Active: {'✓' if status.get('monitoring_active') else '✗'}
-            Monitoring Allowed: {'✓' if status.get('monitoring_allowed') else '✗'}
-            Mode Duration: {status.get('mode_duration_seconds', 0):.1f}s
-            Recent Parameter Changes: {status.get('recent_parameter_changes', 0)}""")
-        
-        if status.get('recent_mode_transitions'):
-            print("   Recent Mode Transitions:")
-            for t in status['recent_mode_transitions'][-3:]:  # Show last 3
-                print(f"     {t['from']} → {t['to']} ({t.get('context', 'no context')})")
+        s = adaptive_monitor.get_status_report()
+        active = '✓' if s.get('monitoring_active') else '✗'
+        allowed = '✓' if s.get('monitoring_allowed') else '✗'
+        print(f"🤖 Monitor: {s.get('system_mode')} | Active: {active} | Allowed: {allowed} | Changes: {s.get('recent_parameter_changes', 0)}")
         return True
     
     return False

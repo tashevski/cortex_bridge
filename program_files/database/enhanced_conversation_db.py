@@ -200,70 +200,32 @@ class EnhancedConversationDB:
     def get_conversations_by_date_range(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         """Get conversations within a date range"""
         try:
-            # Get all conversations
             results = self.conversations.get(include=['metadatas'])
-            
-            if not results or not results.get('metadatas'):
-                return []
+            if not results or not results.get('metadatas'): return []
             
             conversations = []
-            for i, metadata in enumerate(results['metadatas']):
-                # Parse timestamp from metadata
-                timestamp_str = metadata.get('timestamp')
-                if timestamp_str:
-                    try:
-                        # Handle different timestamp formats
-                        if 'T' in timestamp_str:
-                            conversation_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-                        else:
-                            conversation_time = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                        
-                        # Check if conversation is in date range
-                        if start_time <= conversation_time <= end_time:
-                            conversations.append({
-                                'id': results['ids'][i] if results.get('ids') else f"conv_{i}",
-                                'metadata': metadata,
-                                'timestamp': conversation_time
-                            })
-                    except (ValueError, TypeError) as e:
-                        # Skip conversations with invalid timestamps
-                        continue
-            
+            for i, meta in enumerate(results['metadatas']):
+                timestamp_str = meta.get('timestamp')
+                if not timestamp_str: continue
+                
+                try:
+                    conv_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')) if 'T' in timestamp_str else datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                    if start_time <= conv_time <= end_time:
+                        conversations.append({'id': results['ids'][i], 'metadata': meta, 'timestamp': conv_time})
+                except: continue
             return conversations
-            
-        except Exception as e:
-            print(f"Error getting conversations by date range: {e}")
-            return []
+        except: return []
     
     def get_conversation_history(self, conversation_id: str) -> List[Dict[str, Any]]:
         """Get conversation history for a specific conversation/session"""
         try:
-            # For now, return a basic structure since ChromaDB doesn't have traditional conversation history
-            # This method would need to be enhanced based on your actual data structure
-            results = self.conversations.get(
-                where={"session_id": conversation_id},
-                include=['metadatas', 'documents']
-            )
+            results = self.conversations.get(where={"session_id": conversation_id}, include=['metadatas', 'documents'])
+            if not results or not results.get('metadatas'): return []
             
-            if not results or not results.get('metadatas'):
-                return []
-            
-            messages = []
-            for i, (metadata, document) in enumerate(zip(results['metadatas'], results.get('documents', []))):
-                message = {
-                    'id': results['ids'][i] if results.get('ids') else f"msg_{i}",
-                    'text': document,
-                    'metadata': metadata,
-                    'response_time': metadata.get('response_time', 0),
-                    'error': metadata.get('error', False),
-                    'speaker_changed': metadata.get('speaker_changed', False),
-                    'interrupted': metadata.get('interrupted', False),
-                    'model': metadata.get('model', 'unknown')
-                }
-                messages.append(message)
-            
-            return messages
-            
-        except Exception as e:
-            print(f"Error getting conversation history: {e}")
-            return []
+            return [{
+                'id': results['ids'][i], 'text': doc, 'metadata': meta,
+                'response_time': meta.get('response_time', 0), 'error': meta.get('error', False),
+                'speaker_changed': meta.get('speaker_changed', False), 'interrupted': meta.get('interrupted', False),
+                'model': meta.get('model', 'unknown')
+            } for i, (meta, doc) in enumerate(zip(results['metadatas'], results.get('documents', [])))]
+        except: return []
