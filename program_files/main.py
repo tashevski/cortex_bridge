@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Main entry point for the speech processing pipeline"""
 
-import sys
 import os
-
-# Add the current directory to Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Suppress tokenizers parallelism warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from core.program_pipeline import main
 

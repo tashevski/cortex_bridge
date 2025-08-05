@@ -31,14 +31,54 @@ def clean_text_for_tts(text):
 
 def split_text_into_chunks(text, max_chunk_length=100):
     """Split text into smaller chunks for streaming TTS"""
-    # Split by sentences first
-    sentences = re.split(r'[.!?]+', text)
+    # First, protect common abbreviations and phrases from being split
+    protected_phrases = [
+        "e.g.", "i.e.", "etc.", "vs.", "Dr.", "Mr.", "Mrs.", "Ms.", "Prof.", "Ph.D.",
+        "a.m.", "p.m.", "U.S.", "U.K.", "U.S.A.", "U.K.", "etc.", "vs.", "vs",
+        "e.g", "i.e", "a.m", "p.m", "U.S", "U.K", "U.S.A"
+    ]
+    
+    # Temporarily replace protected phrases with placeholders
+    protected_map = {}
+    for i, phrase in enumerate(protected_phrases):
+        placeholder = f"__PROTECTED_{i}__"
+        text = text.replace(phrase, placeholder)
+        protected_map[placeholder] = phrase
+    
+    # Split by sentences, but be more careful about sentence boundaries
+    # Look for sentence endings followed by space and capital letter
+    import re
+    
+    # Split on sentence endings (.!?) followed by space and capital letter
+    sentences = re.split(r'([.!?])\s+(?=[A-Z])', text)
+    
+    # Reconstruct sentences properly
+    reconstructed_sentences = []
+    for i in range(0, len(sentences), 2):
+        if i + 1 < len(sentences):
+            # Combine sentence with its punctuation
+            sentence = sentences[i] + sentences[i + 1]
+        else:
+            sentence = sentences[i]
+        
+        if sentence.strip():
+            reconstructed_sentences.append(sentence.strip())
+    
+    # Restore protected phrases
+    for placeholder, phrase in protected_map.items():
+        for i, sentence in enumerate(reconstructed_sentences):
+            reconstructed_sentences[i] = sentence.replace(placeholder, phrase)
+    
     chunks = []
     current_chunk = ""
     
-    for sentence in sentences:
+    for sentence in reconstructed_sentences:
         sentence = sentence.strip()
         if not sentence:
+            continue
+        
+        # Skip very short sentences that are likely fragments
+        if len(sentence) < 3:
             continue
             
         # If adding this sentence would exceed the limit, save current chunk and start new one
@@ -47,24 +87,35 @@ def split_text_into_chunks(text, max_chunk_length=100):
             current_chunk = sentence
         else:
             if current_chunk:
-                current_chunk += ". " + sentence
+                current_chunk += " " + sentence
             else:
                 current_chunk = sentence
     
-    # Add the last chunk if it exists
-    if current_chunk:
+    # Add the last chunk if it exists and is substantial
+    if current_chunk and len(current_chunk.strip()) >= 3:
         chunks.append(current_chunk.strip())
     
-    return chunks
+    # Filter out chunks that are too short or just punctuation
+    filtered_chunks = []
+    for chunk in chunks:
+        # Remove extra whitespace and check if it's substantial
+        cleaned_chunk = re.sub(r'\s+', ' ', chunk).strip()
+        if len(cleaned_chunk) >= 5:  # Minimum 5 characters
+            filtered_chunks.append(cleaned_chunk)
+    
+    return filtered_chunks
 
 class OfflineTTSFile:
     def __init__(self):
         try:
             self.tts = TTS(model_name="tts_models/en/vctk/vits", progress_bar=False)
             print("TTS initialized successfully!")
+            self.tts_available = True
         except Exception as e:
             print(f"Error initializing TTS: {e}")
+            print("⚠️  TTS will be disabled. Speech responses will be text-only.")
             self.tts = None
+            self.tts_available = False
         
         # Initialize pygame mixer for streaming
         try:
@@ -74,9 +125,9 @@ class OfflineTTSFile:
             print(f"Error initializing pygame mixer: {e}")
             self.mixer_initialized = False
     
-    def convert_to_file(self, text, filename="output.wav"):
+    def convert_to_file(self, text, filename="output.wav", speaker="p225"):
         """Convert text to audio file"""
-        if self.tts:
+        if self.tts and self.tts_available:
             try:
                 # Clean the text before processing
                 cleaned_text = clean_text_for_tts(text)
@@ -85,7 +136,7 @@ class OfflineTTSFile:
                     return False
                 
                 print(f"Generating speech for: {cleaned_text}")
-                self.tts.tts_to_file(text=cleaned_text, file_path=filename)
+                self.tts.tts_to_file(text=cleaned_text, file_path=filename, speaker=speaker)
                 print(f"Audio saved to {filename}")
                 return True
             except Exception as e:
@@ -107,9 +158,9 @@ class OfflineTTSFile:
         except Exception as e:
             print(f"Error playing file: {e}")
     
-    def stream_text_to_speech(self, text, chunk_length=100):
+    def stream_text_to_speech(self, text, chunk_length=100, speaker="p229"):
         """Stream text to speech in chunks for real-time playback"""
-        if not self.tts or not self.mixer_initialized:
+        if not self.tts_available or not self.mixer_initialized:
             print("❌ TTS or mixer not initialized")
             return False
         
@@ -139,8 +190,8 @@ class OfflineTTSFile:
                 try:
                     print(f"🎵 Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
                     
-                    # Generate audio for this chunk
-                    self.tts.tts_to_file(text=chunk, file_path=chunk_filename)
+                    # Generate audio for this chunk with speaker parameter
+                    self.tts.tts_to_file(text=chunk, file_path=chunk_filename, speaker=speaker)
                     
                     # Play the chunk
                     pygame.mixer.music.load(chunk_filename)
