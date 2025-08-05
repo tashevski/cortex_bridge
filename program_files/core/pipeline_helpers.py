@@ -71,6 +71,22 @@ def handle_special_commands(text: str, gemma_client, conversation_manager) -> bo
         print(f"🤖 Monitor: {s.get('system_mode')} | Active: {active} | Allowed: {allowed} | Changes: {s.get('recent_parameter_changes', 0)}")
         return True
     
+    if text_lower in ["save config", "save configuration"]:
+        from config.runtime_config import runtime_config
+        if runtime_config.save_config():
+            print("💾 Configuration saved to disk")
+        else:
+            print("❌ Failed to save configuration")
+        return True
+    
+    if text_lower in ["reset config", "reset configuration", "reset to defaults"]:
+        from config.runtime_config import runtime_config
+        if runtime_config.reset_to_defaults():
+            print("🔄 Configuration reset to defaults")
+        else:
+            print("❌ Failed to reset configuration")
+        return True
+    
     return False
 
 def get_audio_error_message(errno: int) -> Optional[str]:

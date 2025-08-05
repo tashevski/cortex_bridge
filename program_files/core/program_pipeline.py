@@ -277,6 +277,11 @@ def main():
         stream.close()
         audio.terminate()
         adaptive_monitor.stop_monitoring()
+        
+        # Save configuration on exit
+        from config.runtime_config import runtime_config
+        if runtime_config.save_config():
+            print("💾 Configuration saved")
         print("✅ Cleanup complete")
 
 if __name__ == "__main__":

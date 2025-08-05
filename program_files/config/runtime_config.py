@@ -1,8 +1,9 @@
 """Runtime configuration management for dynamic parameter updates"""
 from typing import Any, Dict, Optional, List
 from config.config import cfg
-import threading
-from dataclasses import fields, is_dataclass
+import threading, json, os
+from dataclasses import fields, is_dataclass, asdict
+from pathlib import Path
 
 class RuntimeConfigManager:
     """Manages runtime configuration changes with validation and thread safety"""
@@ -10,6 +11,8 @@ class RuntimeConfigManager:
     def __init__(self):
         self.lock = threading.Lock()
         self.change_callbacks = {}
+        self.config_file = Path(__file__).parent / "saved_config.json"
+        self._defaults = None  # Store original defaults
         
         # Define parameters that require component restart
         self.restart_required_params = {
@@ -24,6 +27,10 @@ class RuntimeConfigManager:
         self.read_only_params = {
             # Currently no truly read-only params - most can be changed with care
         }
+        
+        # Load saved config on startup
+        self._save_defaults()
+        self.load_config()
         
     def update_config(self, component: str, **kwargs) -> Dict[str, Any]:
         """Update any config component dynamically
@@ -322,6 +329,81 @@ class RuntimeConfigManager:
                     info[field.name] = param_info
                     
             return info
+    
+    def _save_defaults(self):
+        """Save original default values"""
+        if self._defaults is None:
+            self._defaults = {}
+            for field in fields(cfg):
+                component_obj = getattr(cfg, field.name)
+                if is_dataclass(component_obj):
+                    self._defaults[field.name] = asdict(component_obj)
+    
+    def save_config(self) -> bool:
+        """Save current configuration to disk"""
+        try:
+            with self.lock:
+                config_data = {}
+                for field in fields(cfg):
+                    component_obj = getattr(cfg, field.name)
+                    if is_dataclass(component_obj):
+                        config_data[field.name] = asdict(component_obj)
+                
+                with open(self.config_file, 'w') as f:
+                    json.dump(config_data, f, indent=2)
+                return True
+        except Exception as e:
+            print(f"Failed to save config: {e}")
+            return False
+    
+    def load_config(self) -> bool:
+        """Load configuration from disk"""
+        if not self.config_file.exists():
+            return False
+            
+        try:
+            with self.lock:
+                with open(self.config_file, 'r') as f:
+                    config_data = json.load(f)
+                
+                for component_name, component_data in config_data.items():
+                    if hasattr(cfg, component_name):
+                        component_obj = getattr(cfg, component_name)
+                        if is_dataclass(component_obj):
+                            # Update component with saved values
+                            for key, value in component_data.items():
+                                if hasattr(component_obj, key):
+                                    setattr(component_obj, key, value)
+                return True
+        except Exception as e:
+            print(f"Failed to load config: {e}")
+            return False
+    
+    def reset_to_defaults(self) -> bool:
+        """Reset all configuration to original defaults"""
+        try:
+            with self.lock:
+                if self._defaults is None:
+                    print("No defaults saved")
+                    return False
+                
+                for component_name, default_data in self._defaults.items():
+                    if hasattr(cfg, component_name):
+                        component_obj = getattr(cfg, component_name)
+                        if is_dataclass(component_obj):
+                            # Reset component to defaults
+                            for key, value in default_data.items():
+                                if hasattr(component_obj, key):
+                                    setattr(component_obj, key, value)
+                
+                # Remove saved config file
+                if self.config_file.exists():
+                    os.remove(self.config_file)
+                
+                return True
+        except Exception as e:
+            print(f"Failed to reset to defaults: {e}")
+            return False
 
 # Global instance
 runtime_config = RuntimeConfigManager()

@@ -1,0 +1,138 @@
+{
+  "smart_model_selector": {
+    "switch_threshold": 30,
+    "context_length_threshold": 500,
+    "complex_keywords": [
+      "analyze",
+      "explain",
+      "reasoning",
+      "complex",
+      "detailed",
+      "comprehensive"
+    ],
+    "simple_keywords": [
+      "what",
+      "when",
+      "where",
+      "yes",
+      "no",
+      "quick",
+      "simple"
+    ]
+  },
+  "latency_monitor": {
+    "history_size": 50,
+    "high_latency_threshold": 4.0,
+    "acceptable_interruption_rate": 0.2,
+    "emergency_switch_threshold": 0.5,
+    "recent_count_for_interruption_rate": 10,
+    "recent_count_for_avg_response_time": 20
+  },
+  "model_preloader": {
+    "base_url": "http://localhost:11434",
+    "timeout": 30,
+    "max_retries": 3,
+    "background_rotation_interval": 300,
+    "pull_timeout": 300
+  },
+  "conversation_mode": {
+    "enter_keywords": [
+      "hey gemma",
+      "gemma",
+      "assistant",
+      "help"
+    ],
+    "exit_keywords": [
+      "exit",
+      "quit",
+      "stop",
+      "bye",
+      "goodbye",
+      "end conversation"
+    ],
+    "question_words": [
+      "what",
+      "how",
+      "why",
+      "when",
+      "where",
+      "who",
+      "which"
+    ],
+    "auxiliary_prefixes": [
+      "is ",
+      "are ",
+      "do ",
+      "does ",
+      "can ",
+      "will "
+    ],
+    "enter_on_questions": true,
+    "enter_on_emotions": false,
+    "trigger_emotions": [
+      "anger",
+      "frustration",
+      "sadness",
+      "fear",
+      "surprise"
+    ],
+    "emotion_confidence_threshold": 0.7,
+    "emotion_window_size": 5,
+    "emotion_trigger_count": 2,
+    "max_context_messages": 6,
+    "max_history_items": 100
+  },
+  "gemma_client": {
+    "default_model": "gemma3n:e2b",
+    "base_url": "http://localhost:11434",
+    "timeout": 30,
+    "stream": false
+  },
+  "speech_processor": {
+    "sample_rate": 16000,
+    "vad_aggressiveness": 2,
+    "silence_threshold": 3,
+    "energy_threshold": 500.0,
+    "frame_size": 960
+  },
+  "speaker_detector": {
+    "max_speakers": 8,
+    "buffer_size": 16000,
+    "similarity_threshold": 0.4,
+    "min_speech_energy": 0.02,
+    "min_frames_for_new_speaker": 15,
+    "min_frames_for_change": 4,
+    "use_ecapa_model": true,
+    "model_save_dir": "models/spkrec-ecapa-voxceleb",
+    "embedding_alpha": 0.05,
+    "normalize_embeddings": true,
+    "fft_size": 1024,
+    "voice_freq_min": 80.0,
+    "voice_freq_max": 4000.0,
+    "spectral_bands": 8
+  },
+  "vosk_model": {
+    "preferred_models": [
+      "large",
+      "medium",
+      "small"
+    ],
+    "available_models": {
+      "small": {
+        "name": "vosk-model-small-en-us-0.15",
+        "accuracy": "basic"
+      },
+      "medium": {
+        "name": "vosk-model-en-us-0.22",
+        "accuracy": "good"
+      },
+      "large": {
+        "name": "vosk-model-en-us-0.21",
+        "accuracy": "high"
+      }
+    },
+    "models_base_dir": "models",
+    "sample_rate": 16000,
+    "fallback_model_name": "vosk-model-en-us-0.22"
+  }
+}
