@@ -12,12 +12,11 @@ from rag_functions.llm_analysis import analyze_with_llm
 import sys
 import json
 
-print("Python executable:", sys.executable)
+# Check dependencies
 try:
     import layoutparser as lp
-    print("layoutparser version:", lp.__version__)
 except ImportError:
-    print("layoutparser not installed in this environment.")
+    print("Warning: layoutparser not available")
 
 def process_document(file_path, reference_texts, reference_meta=None, rag_config=None):
     """
@@ -42,9 +41,9 @@ def process_document(file_path, reference_texts, reference_meta=None, rag_config
     else:
         config = get_config("balanced")  # Fallback to default
     
+    # Process document
     if config.verbose:
-        print(f"🚀 Processing document: {file_path}")
-        print(f"📊 Using config preset: {rag_config if isinstance(rag_config, str) else 'custom'}")
+        print(f"Processing: {file_path} ({rag_config if isinstance(rag_config, str) else 'custom'})")
     
     txt = extract_text_and_layout(file_path)
     #tables = extract_tables_pymupdf(file_path)
@@ -122,7 +121,7 @@ if __name__ == "__main__":
     with open(output_file, 'w') as file:
         file.write(output)
 
-    print(f"\n📄 Report saved to: {output_file}")
+    print(f"\nReport saved to: {output_file}")
     print("\n" + "="*50)
     print("ANALYSIS REPORT")
     print("="*50)

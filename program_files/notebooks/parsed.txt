@@ -1,47 +1,57 @@
-## Structured Summary of Comprehensive Behavior Support Plan for John Doe
+## Structured Summary of Behavior Support Plan for John Doe
 
-Here's a structured summary of the provided document, focusing on key entities, topics, and sections:
+This document outlines a Comprehensive Behavior Support Plan (BSP) for John Doe.
 
 **1. Person Details:**
 
 *   **Name:** John Doe
 
-**2. Practitioner/Provider Details:**
+**2. Practitioner & Provider Details:**
 
-*   **Practitioner:** (Implied - likely a clinician or care provider)
-*   **Geriatrician:** Dr. Emily White (Report Date: 2025-06-10)
+*   **Geriatrician Assessment:** Dr. Emily White, Report Date: 2025-06-10
+*   **Cognitive Assessment (MMSE):** Date: 2025-06-15
 
-**3. Purpose:**
+**3. Purpose of the Plan:**
 
-*   The plan's purpose is to provide comprehensive behavior support for John Doe.
+*   The purpose is to provide a comprehensive behavior support plan for John Doe.
 
 **4. Consultation History:**
 
-*   **Geriatric Assessment:** Report by Dr. Emily White (2025-06-10)
-*   **Cognitive Assessment:** MMSE (2025-06-15)
+*   **Geriatrician Assessment:** Report by Dr. Emily White (2025-06-10)
+*   **Cognitive Assessment (MMSE):** Conducted (2025-06-15)
 
-**5. History of Behavior and Intervention:**
+**5. History of Behavior & Interventions:**
 
-*   **Behavior:** Wandering and agitation (onset approximately 6 months ago).
-*   **Previous Interventions:** Redirection of attention, providing a quiet space.
+*   John's wandering and agitation began approximately 6 months ago.
+*   Previous interventions included:
+    *   Redirecting attention
+    *   Providing a quiet space
 
 **6. Response Strategies:**
 
-*   **Restrictive Practices:**  No regulated restrictive practices are to be used.
+*   No regulated restrictive practices are to be used.
 
-**Topics Covered:**
+**Key Entities:**
 
-*   Behavioral Support Plan
-*   Geriatric Assessment
-*   Cognitive Assessment (MMSE)
-*   Wandering and Agitation
+*   **Person:** John Doe
+*   **Professionals:** Dr. Emily White (Geriatrician)
+*   **Assessments:** Geriatric Assessment, Cognitive Assessment (MMSE)
+*   **Behaviors:** Wandering, Agitation
+*   **Interventions:** Redirection, Quiet Space
+*   **Practices:** Restrictive Practices (explicitly ruled out)
+
+**Topics:**
+
+*   Behavior Support Plan (BSP)
+*   Geriatric Care
+*   Cognitive Assessment
 *   Behavioral Interventions
-*   Restrictive Practices (Prohibited)
+*   Restrictive Practices
 
 **Sections:**
 
 *   Person Details
-*   Practitioner/Provider Details
+*   Practitioner and Provider Details
 *   Purpose
 *   Consultation with Others
 *   History of Behavior and Intervention

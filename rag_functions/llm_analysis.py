@@ -30,17 +30,15 @@ def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Op
     if config is None:
         config = get_config("balanced")
     
-    # Initialize Gemma client based on configuration
+    # Initialize Gemma client
     if config.use_optimized_client:
-        # OptimizedGemmaClient automatically selects best model based on prompt
         client = OptimizedGemmaClient()
         if config.verbose:
-            print(f"🤖 Using OptimizedGemmaClient with auto model selection")
+            print("Using OptimizedGemmaClient with auto model selection")
     else:
-        # Basic client with configured model
         client = GemmaClient(model=config.default_model, base_url=config.ollama_base_url)
         if config.verbose:
-            print(f"🤖 Using GemmaClient with model: {config.default_model}")
+            print(f"Using GemmaClient with model: {config.default_model}")
     
     # Prepare context and prompt
     context_parts = []
@@ -66,9 +64,8 @@ def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Op
             prompt_template = config.custom_template
         else:
             prompt_template = get_template(config.default_template)
-            if not prompt_template:
-                if config.verbose:
-                    print(f"⚠️ Template '{config.default_template}' not found, falling back to basic prompt")
+            if not prompt_template and config.verbose:
+                print(f"Template '{config.default_template}' not found, using basic prompt")
     
     # Create the main prompt
     if config.detailed_report:
@@ -77,9 +74,9 @@ def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Op
         prompt = "Provide a concise analysis of this document highlighting the main points and insights."
     
     if config.verbose:
-        print(f"📝 Generated prompt length: {len(prompt)} characters")
+        print(f"Prompt length: {len(prompt)} characters")
         if prompt_template:
-            print(f"📋 Using template: {config.custom_template or config.default_template}")
+            print(f"Template: {config.custom_template or config.default_template}")
     
     # Generate response using Gemma
     try:
@@ -105,12 +102,11 @@ def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Op
             )
     except Exception as e:
         if config.verbose:
-            print(f"❌ Error generating response: {e}")
+            print(f"Error generating response: {e}")
         response = None
     
-    # Check if response was generated successfully
+    # Return response or fallback
     if response is None:
-        print("⚠️ Failed to generate response from Gemma. Using fallback response.")
         return "Analysis could not be completed. Please check if Ollama server is running."
     
     return response

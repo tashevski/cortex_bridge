@@ -123,72 +123,40 @@ def _load_layout_model():
     """Load the layout detection model lazily"""
     global model
     if model is None:
-        try:
-            print("🔄 Loading layout model...")
-            model_path = '/Users/alexander/Library/CloudStorage/Dropbox/Personal Research/cortex_bridge/rag_functions/models/model_final.pth'
-            config_path = 'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config'
-            model = lp.Detectron2LayoutModel(
-                config_path,                 # YAML config (tiny download or cached locally)
-                model_path=model_path,       # Your local weights file
-                extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
-                label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"},
-            )
-            print("✅ Layout model loaded successfully from local file!")
-        except Exception as e:
-            print(f"⚠️ Warning: Could not load layout model: {e}")
-            print(f"🔍 Error type: {type(e).__name__}")
-            print("📄 Falling back to simple text extraction")
-            return None
+        model_path = '/Users/alexander/Library/CloudStorage/Dropbox/Personal Research/cortex_bridge/rag_functions/models/model_final.pth'
+        config_path = 'lp://PubLayNet/faster_rcnn_R_50_FPN_3x/config'
+        model = lp.Detectron2LayoutModel(
+            config_path,
+            model_path=model_path,
+            extra_config=["MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.8],
+            label_map={0: "Text", 1: "Title", 2: "List", 3: "Table", 4: "Figure"},
+        )
     return model
 
 
 # Primary Function ############################################################################################################
 def extract_text_and_layout(pdf_path):
-    """Extract text and layout from PDF, with fallback to simple OCR if layout model fails"""
-    
-    # Try to load the layout model
+    """Extract text and layout from PDF using layout detection"""
     layout_model = _load_layout_model()
     
-    # pull out the pages 
-    try:
-        pages = convert_from_path(
-            pdf_path,
-            dpi=300,
-            poppler_path="/opt/homebrew/bin"  # ← update this path if different
-        )
-    except Exception as e:
-        print(f"❌ Error converting PDF: {e}")
-        return "Error: Could not process PDF file"
+    # Convert PDF to images
+    pages = convert_from_path(pdf_path, dpi=300, poppler_path="/opt/homebrew/bin")
 
     total_text = ""
     for i, image in enumerate(pages):
-        if layout_model is not None:
-            # Use layout detection if available
-            try:
-                layout = layout_model.detect(image)
-            except Exception as e:
-                print(f"⚠️ Layout detection failed for page {i+1}: {e}")
-                # Fallback to simple OCR for this page
-                page_text = pytesseract.image_to_string(image)
-                total_text += f"\n--- Page {i+1} ---\n{page_text}\n"
-                continue
-        else:
-            # Simple OCR fallback when no layout model
-            page_text = pytesseract.image_to_string(image)
-            total_text += f"\n--- Page {i+1} ---\n{page_text}\n"
-            continue
-
-        # Pull out the text chunks
+        # Detect layout elements
+        layout = layout_model.detect(image)
+        
+        # Process layout: inflate boxes and remove overlaps
         layout = inflate_layout(layout, top=15, bottom=3, left=6, right=6)
         layout = remove_mostly_overlapping_boxes(layout, iou_threshold=0.5)
         
-        # Sort the text chunks
+        # Sort text blocks by reading order
         page_width, page_height = image.size
         blocks = [b for b in layout if b.type in ("Title", "Text")]
         layout_sorted = sort_blocks_by_layout(blocks, page_width)
 
-
-        # process the sections
+        # Extract text into sections
         sections = []
         current_section = {"heading": "Document", "content": []}
 
@@ -205,20 +173,20 @@ def extract_text_and_layout(pdf_path):
             else:
                 current_section["content"].append(text)
 
-
-        # Append the last section
+        # Add final section
         if current_section["content"]:
             sections.append(current_section)
 
-        # final pulling out of all the text 
-        total_page_text = ""
+        # Format page text
+        page_text = ""
         for section in sections:
-            if section['heading'] != 'Document': total_page_text += f"# {section['heading']} \n"
+            if section['heading'] != 'Document': 
+                page_text += f"# {section['heading']} \n"
             for paragraph in section["content"]:
                 if not id_table(paragraph) and not paragraph.startswith("Note. "):
-                    total_page_text += paragraph + "\n \n"
+                    page_text += paragraph + "\n \n"
         
-        total_text += total_page_text
+        total_text += page_text
 
     return total_text
 
