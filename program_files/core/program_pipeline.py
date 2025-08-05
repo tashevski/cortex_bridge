@@ -13,6 +13,7 @@ from ai.adaptive_system_monitor import adaptive_monitor, SystemMode
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
+from tts.tts import OfflineTTSFile
 
 def load_vosk_model(config=None):
     """Load Vosk model using configuration"""
@@ -70,7 +71,7 @@ class EmotionClassifier:
             return "neutral", 0.0
 
 def process_text(text: str, conversation_manager: ConversationManager, gemma_client: OptimizedGemmaClient, 
-                speaker_detector, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
+                speaker_detector, tts_file, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
     """Process transcribed text based on conversation state"""
     
     if conversation_manager.waiting_for_feedback:
@@ -104,7 +105,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Processing LLM request")
         
         context = conversation_manager.get_conversation_context()
-        handle_gemma_response(gemma_client, text, context, conversation_manager)
+        handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file)
         
         # Return to listening after LLM response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "LLM response complete")
@@ -121,7 +122,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         # Set mode to GEMMA for initial processing
         adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Entering conversation mode")
         
-        handle_gemma_response(gemma_client, text, "", conversation_manager)
+        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file)
         
         # Return to listening after initial response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Conversation mode active")
@@ -156,6 +157,7 @@ def main():
     conversation_manager = ConversationManager()
     speech_processor = SpeechProcessor()  # Uses config defaults
     gemma_client = OptimizedGemmaClient()  # Uses config defaults
+    tts_file = OfflineTTSFile() # offline tts 
     
     speaker_detector = SpeakerDetector(enhanced_db=conversation_manager.vector_db)  # Uses config defaults
     
@@ -185,7 +187,7 @@ def main():
         
         audio_features = speaker_detector.get_current_features()
         # We skip emotion classification here to avoid duplicate costly inference.
-        process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features)
+        process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features)
         if audio_features:
             speaker_detector.clear_feature_buffer()
     
@@ -260,7 +262,7 @@ def main():
                 # Determine emotion for full recognized text
                 emotion_text, confidence = emotion_classifier.process(text)
                 print(f"🎭 Emotion: {emotion_text} (Confidence: {confidence:.2f})")
-                process_text(text, conversation_manager, gemma_client, speaker_detector, audio_features, emotion_text, confidence)
+                process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features, emotion_text, confidence)
                 
                 if audio_features:
                     speaker_detector.clear_feature_buffer()

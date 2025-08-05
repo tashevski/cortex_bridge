@@ -11,8 +11,9 @@ sys.path.append(str(Path(__file__).parent.parent / "program_files"))
 from ai.optimized_gemma_client import OptimizedGemmaClient
 from ai.gemma_client import GemmaClient
 
-# Import RAG configuration
+# Import RAG configuration and prompt templates
 from .config import RAGConfig, get_config
+from .prompt_templates import get_template
 
 def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Optional[RAGConfig] = None):
     """
@@ -42,36 +43,43 @@ def analyze_with_llm(parsed_entities, calc_results, reference_chunks, config: Op
             print(f"🤖 Using GemmaClient with model: {config.default_model}")
     
     # Prepare context and prompt
-    context = "\n\n".join(reference_chunks[:config.max_reference_chunks])
+    context_parts = []
     
-    # Build prompt based on configuration
-    prompt_parts = ["You are an AI assistant analyzing documents."]
+    # Add parsed entities
+    context_parts.append(f"Document Analysis:\n{parsed_entities}")
     
-    prompt_parts.append(f"\nParsed document entities:\n{parsed_entities}")
-    
+    # Add calculations if available
     if config.include_calculations and calc_results:
-        prompt_parts.append(f"\nCalculation results:\n{calc_results}")
+        context_parts.append(f"Calculations:\n{calc_results}")
     
-    if config.include_references and context:
-        prompt_parts.append(f"\nReference context (from similar documents):\n{context}")
+    # Add reference context if available
+    reference_context = "\n\n".join(reference_chunks[:config.max_reference_chunks])
+    if config.include_references and reference_context:
+        context_parts.append(f"Reference Documents:\n{reference_context}")
     
+    context = "\n\n".join(context_parts)
+    
+    # Determine the prompt template to use
+    prompt_template = None
+    if config.use_prompt_template:
+        if config.custom_template:
+            prompt_template = config.custom_template
+        else:
+            prompt_template = get_template(config.default_template)
+            if not prompt_template:
+                if config.verbose:
+                    print(f"⚠️ Template '{config.default_template}' not found, falling back to basic prompt")
+    
+    # Create the main prompt
     if config.detailed_report:
-        prompt_parts.append("""
-Please generate a structured analysis report for this document based on the above.
-Include:
-1. Summary of key findings
-2. Analysis of the parsed entities
-3. Interpretation of calculations (if any)
-4. Relevant references and their implications
-5. Conclusions and recommendations
-""")
+        prompt = "Provide a comprehensive analysis of this document including key findings, analysis of entities, interpretation of data, and actionable recommendations."
     else:
-        prompt_parts.append("\nPlease provide a concise analysis of this document.")
-    
-    prompt = "\n".join(prompt_parts)
+        prompt = "Provide a concise analysis of this document highlighting the main points and insights."
     
     if config.verbose:
         print(f"📝 Generated prompt length: {len(prompt)} characters")
+        if prompt_template:
+            print(f"📋 Using template: {config.custom_template or config.default_template}")
     
     # Generate response using Gemma
     try:
@@ -79,7 +87,8 @@ Include:
             # Use optimized method that includes model selection and latency monitoring
             response = client.generate_response_optimized(
                 prompt=prompt,
-                context="Document analysis with RAG",
+                context=context,
+                prompt_template=prompt_template,
                 vector_context={
                     "reference_count": len(reference_chunks),
                     "has_calculations": bool(calc_results),
@@ -90,7 +99,8 @@ Include:
             # Use basic generation method
             response = client.generate_response(
                 prompt=prompt,
-                context="Document analysis",
+                context=context,
+                prompt_template=prompt_template,
                 timeout=config.request_timeout
             )
     except Exception as e:

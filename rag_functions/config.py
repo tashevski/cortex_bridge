@@ -25,6 +25,11 @@ class RAGConfig:
     include_references: bool = True  # Include reference documents
     detailed_report: bool = True  # Whether to generate detailed analysis
     
+    # Prompt template settings
+    use_prompt_template: bool = True  # Whether to use structured prompt templates
+    default_template: str = "structured_analysis"  # Default template to use
+    custom_template: Optional[str] = None  # Custom template override
+    
     # Model selection hints for OptimizedGemmaClient
     prefer_fast_models: bool = False  # Prefer faster models over quality
     enable_latency_monitoring: bool = True  # Monitor and adjust based on latency
@@ -43,7 +48,8 @@ PRESETS = {
         default_model="gemma:2b",
         prefer_fast_models=True,
         detailed_report=False,
-        request_timeout=30
+        request_timeout=30,
+        default_template="concise_qa"
     ),
     
     "quality": RAGConfig(
@@ -51,7 +57,8 @@ PRESETS = {
         default_model="gemma3n:e4b",
         prefer_fast_models=False,
         detailed_report=True,
-        request_timeout=120
+        request_timeout=120,
+        default_template="structured_analysis"
     ),
     
     "balanced": RAGConfig(
@@ -59,7 +66,8 @@ PRESETS = {
         default_model="gemma3n:e4b",
         prefer_fast_models=False,
         detailed_report=True,
-        request_timeout=60
+        request_timeout=60,
+        default_template="structured_analysis"
     ),
     
     "debug": RAGConfig(

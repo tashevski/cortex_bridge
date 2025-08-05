@@ -23,6 +23,12 @@ python main.py --model gemma:7b
 # Skip reference documents for faster processing
 python main.py --no-references
 
+# Use specific prompt template
+python main.py --template executive_summary
+
+# Disable prompt templates (use basic prompts)
+python main.py --no-template
+
 # Debug mode with verbose output
 python main.py --config debug
 ```
@@ -62,12 +68,32 @@ from rag_functions.config import RAGConfig
 custom_config = RAGConfig(
     default_model="gemma:7b",
     use_optimized_client=True,
-    max_precedent_chunks=10,
+    max_reference_chunks=10,
     request_timeout=90,
+    default_template="structured_analysis",
     verbose=True
 )
 
-output = process_legal_document(file_path, precedents, meta, custom_config)
+output = process_document(file_path, references, meta, custom_config)
+```
+
+### Prompt Templates
+
+```python
+from rag_functions.prompt_templates import get_template, create_custom_template
+
+# Use predefined template
+template = get_template("executive_summary")
+
+# Create custom template
+custom_template = create_custom_template(
+    context_prefix="Research Data",
+    instructions="You are a research analyst",
+    output_format="Use numbered sections"
+)
+
+# Use with config
+config.custom_template = custom_template
 ```
 
 ## 🤖 Gemma Client Features

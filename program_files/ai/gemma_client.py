@@ -70,7 +70,8 @@ class GemmaClient:
         response = requests.post(self.api_url, json=payload, timeout=request_timeout)
         
         if response.status_code == 200:
-            return response.json()['response'].strip()
+            gemma_response = response.json()['response'].strip()
+            return gemma_response
         
         print(f"❌ Error: HTTP {response.status_code}")
         return None

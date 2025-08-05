@@ -85,6 +85,9 @@ if __name__ == "__main__":
                        choices=["fast", "quality", "balanced", "debug"],
                        help="Configuration preset to use")
     parser.add_argument("--model", help="Override default Gemma model")
+    parser.add_argument("--template", help="Override default prompt template")
+    parser.add_argument("--no-template", action="store_true",
+                       help="Disable prompt templates (use basic prompts)")
     parser.add_argument("--no-references", action="store_true", 
                        help="Skip reference document analysis")
     parser.add_argument("--no-calculations", action="store_true",
@@ -96,11 +99,15 @@ if __name__ == "__main__":
     meta = [{"doc_id": "DocA"}, {"doc_id": "DocB"}, {}] if not args.no_references else None
     
     # Override config if specific options provided
-    if args.model or args.no_references or args.no_calculations:
+    if args.model or args.template or args.no_template or args.no_references or args.no_calculations:
         from rag_functions.config import get_config
         config = get_config(args.config)
         if args.model:
             config.default_model = args.model
+        if args.template:
+            config.default_template = args.template
+        if args.no_template:
+            config.use_prompt_template = False
         if args.no_references:
             config.include_references = False
         if args.no_calculations:
