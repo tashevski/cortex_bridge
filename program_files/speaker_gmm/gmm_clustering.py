@@ -10,7 +10,7 @@ import os
 import pickle
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.enhanced_conversation_db import EnhancedConversationDB
+from database.enhanced_conversation_db import EnhancedConversationDB
 
 def filter_consistent_dimensions(features, metadata):
     """Filter features to most common dimension size for GMM clustering"""

@@ -12,7 +12,6 @@ from .text_utils import (
     format_conversation_context,
 )
 from .ollama_utils import ensure_ollama_running, ensure_required_models
-from .enhanced_conversation_db import EnhancedConversationDB
 
 __all__ = [
     "is_question",
@@ -21,5 +20,4 @@ __all__ = [
     "format_conversation_context",
     "ensure_ollama_running",
     "ensure_required_models",
-    "EnhancedConversationDB",
 ]

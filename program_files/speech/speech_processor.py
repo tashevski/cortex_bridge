@@ -4,7 +4,7 @@
 import numpy as np
 import webrtcvad
 from typing import Dict, Optional
-from utils.config import SpeechProcessorConfig, SpeakerDetectorConfig
+from config.config import SpeechProcessorConfig, SpeakerDetectorConfig
 
 
 class SpeechProcessor:
@@ -12,7 +12,7 @@ class SpeechProcessor:
     
     def __init__(self, config: Optional[SpeechProcessorConfig] = None):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.speech_processor
             
         self.config = config
@@ -46,7 +46,7 @@ class SpeakerDetector:
     
     def __init__(self, config: Optional[SpeakerDetectorConfig] = None, **kwargs):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.speaker_detector
             
         self.config = config

@@ -5,15 +5,15 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from collections import deque
 from utils.text_utils import contains_keywords, truncate_history, format_conversation_context
-from utils.enhanced_conversation_db import EnhancedConversationDB
-from utils.config import ConversationModeConfig
+from database.enhanced_conversation_db import EnhancedConversationDB
+from config.config import ConversationModeConfig
 
 class ConversationManager:
     """Manages conversation state and history"""
     
     def __init__(self, enable_vector_db: bool = True, config: Optional[ConversationModeConfig] = None):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.conversation_mode
             
         self.config = config

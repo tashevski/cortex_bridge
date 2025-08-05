@@ -3,14 +3,14 @@
 
 import time
 from typing import Optional
-from utils.config import SmartModelSelectorConfig
+from config.config import SmartModelSelectorConfig
 
 class SmartModelSelector:
     """Intelligently selects models to minimize loading overhead"""
     
     def __init__(self, config: Optional[SmartModelSelectorConfig] = None):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.smart_model_selector
             
         self.current_model = None

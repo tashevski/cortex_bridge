@@ -10,7 +10,7 @@ from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.optimized_gemma_client import OptimizedGemmaClient
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
-from utils.config import cfg
+from config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
 
 def load_vosk_model(config=None):

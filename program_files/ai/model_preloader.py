@@ -5,14 +5,14 @@ import requests
 import threading
 import time
 from typing import List, Optional
-from utils.config import ModelPreloaderConfig
+from config.config import ModelPreloaderConfig
 
 class ModelPreloader:
     """Preload and warm models to minimize loading times"""
     
     def __init__(self, config: Optional[ModelPreloaderConfig] = None):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.model_preloader
             
         self.base_url = config.base_url

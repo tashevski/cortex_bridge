@@ -6,7 +6,7 @@ import threading
 from collections import deque
 from typing import Optional, Callable, Dict, Any
 from dataclasses import dataclass
-from utils.config import LatencyMonitorConfig
+from config.config import LatencyMonitorConfig
 
 @dataclass
 class LatencyMetrics:
@@ -24,7 +24,7 @@ class LatencyMonitor:
     
     def __init__(self, config: Optional[LatencyMonitorConfig] = None):
         if config is None:
-            from utils.config import cfg
+            from config.config import cfg
             config = cfg.latency_monitor
             
         self.history_size = config.history_size
