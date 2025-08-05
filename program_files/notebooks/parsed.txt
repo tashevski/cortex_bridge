@@ -1,54 +1,34 @@
 ## Structured Summary of Behavior Support Plan for John Doe
 
-This document outlines a Comprehensive Behavior Support Plan (BSP) for John Doe.
+Here's a structured summary of the key entities, topics, and sections extracted from the provided document:
 
 **1. Person Details:**
 
 *   **Name:** John Doe
 
-**2. Practitioner & Provider Details:**
+**2. Practitioner/Provider Details:**
 
-*   **Geriatrician Assessment:** Dr. Emily White, Report Date: 2025-06-10
-*   **Cognitive Assessment (MMSE):** Date: 2025-06-15
+*   **Geriatrician:** Dr. Emily White (Assessment Report Date: 2025-06-10)
 
-**3. Purpose of the Plan:**
+**3. Purpose:**
 
-*   The purpose is to provide a comprehensive behavior support plan for John Doe.
+*   The plan aims to provide comprehensive behavior support.
 
 **4. Consultation History:**
 
-*   **Geriatrician Assessment:** Report by Dr. Emily White (2025-06-10)
-*   **Cognitive Assessment (MMSE):** Conducted (2025-06-15)
+*   **Geriatrician Assessment:** Dr. Emily White (2025-06-10)
+*   **Cognitive Assessment (MMSE):** 2025-06-15
 
 **5. History of Behavior & Interventions:**
 
-*   John's wandering and agitation began approximately 6 months ago.
-*   Previous interventions included:
-    *   Redirecting attention
-    *   Providing a quiet space
+*   **Behavioral Issue:** Wandering and agitation (began approximately 6 months ago).
+*   **Previous Interventions:** Redirection of attention, providing a quiet space.
 
 **6. Response Strategies:**
 
-*   No regulated restrictive practices are to be used.
+*   **Restrictive Practices:**  No regulated restrictive practices are to be used.
 
-**Key Entities:**
-
-*   **Person:** John Doe
-*   **Professionals:** Dr. Emily White (Geriatrician)
-*   **Assessments:** Geriatric Assessment, Cognitive Assessment (MMSE)
-*   **Behaviors:** Wandering, Agitation
-*   **Interventions:** Redirection, Quiet Space
-*   **Practices:** Restrictive Practices (explicitly ruled out)
-
-**Topics:**
-
-*   Behavior Support Plan (BSP)
-*   Geriatric Care
-*   Cognitive Assessment
-*   Behavioral Interventions
-*   Restrictive Practices
-
-**Sections:**
+**Document Sections:**
 
 *   Person Details
 *   Practitioner and Provider Details

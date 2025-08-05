@@ -1,24 +1,15 @@
-# RAG Functions with Gemma Integration
+# RAG Functions with Gemma
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 1. Ensure Ollama is running: `ollama serve`
-2. Pull a Gemma model: `ollama pull gemma3n:e4b` (or any other Gemma variant)
+2. Pull the model: `ollama pull gemma3n:e4b`
 
 ### Basic Usage
 ```bash
-# Using default settings (balanced preset)
+# Using default settings
 python main.py
-
-# Using fast preset for quick analysis
-python main.py --config fast
-
-# Using quality preset for detailed analysis
-python main.py --config quality
-
-# Using a specific Gemma model
-python main.py --model gemma:7b
 
 # Skip reference documents for faster processing
 python main.py --no-references
@@ -29,36 +20,11 @@ python main.py --template executive_summary
 # Disable prompt templates (use basic prompts)
 python main.py --no-template
 
-# Debug mode with verbose output
-python main.py --config debug
+# Enable verbose output
+python main.py --verbose
 ```
 
 ## 🔧 Configuration
-
-### Available Presets
-
-1. **balanced** (default)
-   - Model: `gemma3n:e4b`
-   - Optimized client: Yes
-   - Detailed report: Yes
-   - Timeout: 60s
-
-2. **fast**
-   - Model: `gemma:2b`
-   - Prefer fast models: Yes
-   - Detailed report: No
-   - Timeout: 30s
-
-3. **quality**
-   - Model: `gemma3n:e4b`
-   - Prefer quality: Yes
-   - Detailed report: Yes
-   - Timeout: 120s
-
-4. **debug**
-   - Verbose output: Yes
-   - Basic client (no optimization)
-   - Extended timeout: 300s
 
 ### Custom Configuration
 
@@ -66,8 +32,6 @@ python main.py --config debug
 from rag_functions.config import RAGConfig
 
 custom_config = RAGConfig(
-    default_model="gemma:7b",
-    use_optimized_client=True,
     max_reference_chunks=10,
     request_timeout=90,
     default_template="structured_analysis",
