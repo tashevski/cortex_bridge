@@ -9,6 +9,7 @@ from vosk import Model, KaldiRecognizer
 from .conversation_manager import ConversationManager
 from speech.speech_processor import SpeechProcessor, SpeakerDetector
 from ai.optimized_gemma_client import OptimizedGemmaClient
+from ai.adaptive_system_monitor import adaptive_monitor, SystemMode
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
@@ -73,6 +74,9 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
     """Process transcribed text based on conversation state"""
     
     if conversation_manager.waiting_for_feedback:
+        # Set mode to processing while handling feedback
+        adaptive_monitor.set_system_mode(SystemMode.PROCESSING, "Processing user feedback")
+        
         feedback = process_feedback(text)
         if conversation_manager.vector_db:
             conversation_manager.vector_db.update_session_with_feedback(
@@ -81,6 +85,9 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         conversation_manager.reset_conversation()
         conversation_manager.start_new_conversation()
         print("🎤 Back to listening mode")
+        
+        # Return to listening mode
+        adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Ready for next input")
         return
     
     if conversation_manager.in_gemma_mode:
@@ -89,10 +96,18 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         if conversation_manager.should_exit_gemma_mode(text):
             print("Was that helpful?")
             conversation_manager.waiting_for_feedback = True
+            # Stay in listening mode for feedback
+            adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Waiting for feedback")
             return
+        
+        # Set mode to GEMMA before processing
+        adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Processing LLM request")
         
         context = conversation_manager.get_conversation_context()
         handle_gemma_response(gemma_client, text, context, conversation_manager)
+        
+        # Return to listening after LLM response
+        adaptive_monitor.set_system_mode(SystemMode.LISTENING, "LLM response complete")
         return
     
     if conversation_manager.should_enter_gemma_mode(text, emotion_text, confidence):
@@ -103,19 +118,35 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         if conversation_manager.is_question(text):
             conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
+        # Set mode to GEMMA for initial processing
+        adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Entering conversation mode")
+        
         handle_gemma_response(gemma_client, text, "", conversation_manager)
+        
+        # Return to listening after initial response
+        adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Conversation mode active")
     else:
         print("⏭️  Not a question - staying in listening mode")
         # Save listening mode conversations too!
         conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
+        
+        # Ensure we're in listening mode
+        adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Processing non-question input")
 
 def main():
     """Main speech processing pipeline"""
     print("🎤 Speech Processing Pipeline - Speak (Ctrl+C to stop)")
     print("📊 Questions will enter Gemma conversation mode")
+    print("🤖 Adaptive monitoring enabled")
+    
+    # Initialize adaptive monitoring
+    adaptive_monitor.set_system_mode(SystemMode.IDLE, "System starting up")
+    adaptive_monitor.start_monitoring()
     
     if not ensure_ollama_running() or not ensure_required_models():
         print("❌ Failed to initialize Ollama. Exiting.")
+        adaptive_monitor.set_system_mode(SystemMode.SHUTDOWN, "Ollama initialization failed")
+        adaptive_monitor.stop_monitoring()
         return
     
     print("✅ Ollama initialization complete")
@@ -130,6 +161,9 @@ def main():
     
     # Start initial session for listening mode
     conversation_manager.start_new_conversation()
+    
+    # Set to listening mode after initialization
+    adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Ready for speech input")
     
     sample_rate = cfg.vosk_model.sample_rate
     rec = KaldiRecognizer(model, sample_rate)
@@ -172,7 +206,14 @@ def main():
             gemma_client.record_speech_activity(is_speech)
             
             if is_speech:
+                # Set to processing mode during active speech processing
+                if adaptive_monitor.get_system_mode() == SystemMode.LISTENING:
+                    adaptive_monitor.set_system_mode(SystemMode.PROCESSING, "Processing speech input")
                 speaker_detector.update_speaker_count(data, speech_processor.silence_frames)
+            else:
+                # Return to listening mode when no speech detected
+                if adaptive_monitor.get_system_mode() == SystemMode.PROCESSING:
+                    adaptive_monitor.set_system_mode(SystemMode.LISTENING, "No speech detected")
             
             # Track partial results for speaker change detection
             partial_result = json.loads(rec.PartialResult())
@@ -200,6 +241,7 @@ def main():
                 
                 if text.lower() == "exit program":
                     print("ending program")
+                    adaptive_monitor.set_system_mode(SystemMode.SHUTDOWN, "User requested exit")
                     break
                 
                 if handle_special_commands(text, gemma_client, conversation_manager):
@@ -230,9 +272,11 @@ def main():
                         
     except KeyboardInterrupt:
         print("\n🛑 Stopping pipeline...")
+        adaptive_monitor.set_system_mode(SystemMode.SHUTDOWN, "Keyboard interrupt")
         stream.stop_stream()
         stream.close()
         audio.terminate()
+        adaptive_monitor.stop_monitoring()
         print("✅ Cleanup complete")
 
 if __name__ == "__main__":
