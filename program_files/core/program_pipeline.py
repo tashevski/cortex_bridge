@@ -13,7 +13,7 @@ from ai.adaptive_system_monitor import adaptive_monitor, SystemMode
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
-from tts.tts import OfflineTTSFile
+from tts.tts_personal import OfflineTTSFile
 
 def load_vosk_model(config=None):
     """Load Vosk model using configuration"""

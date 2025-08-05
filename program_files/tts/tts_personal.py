@@ -105,21 +105,173 @@ def split_text_into_chunks(text, max_chunk_length=100):
     
     return filtered_chunks
 
+# class OfflineTTSFile:
+#     def __init__(self):
+#         try:
+#             # Initialize YourTTS model
+#             self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False)
+#             print("YourTTS initialized successfully!")
+#             self.tts_available = True
+            
+#             # Set the reference audio file path for voice cloning
+#             # Update this path to your actual .wav file
+#             self.reference_audio_path = os.path.join(os.path.dirname(__file__), "voice_example.wav")
+            
+#         except Exception as e:
+#             print(f"Error initializing YourTTS: {e}")
+#             print("⚠️  YourTTS will be disabled. Speech responses will be text-only.")
+#             self.tts = None
+#             self.tts_available = False
+        
+#         # Initialize pygame mixer for streaming
+#         try:
+#             pygame.mixer.init()
+#             self.mixer_initialized = True
+#         except Exception as e:
+#             print(f"Error initializing pygame mixer: {e}")
+#             self.mixer_initialized = False
+    
+#     def set_reference_audio(self, audio_path):
+#         """Set a new reference audio file for voice cloning"""
+#         if os.path.exists(audio_path):
+#             self.reference_audio_path = audio_path
+#             print(f"✅ Reference audio updated to: {audio_path}")
+#             return True
+#         else:
+#             print(f"❌ Reference audio file not found: {audio_path}")
+#             return False
+    
+#     def convert_to_file(self, text, filename="output.wav", speaker=None):
+#         """Convert text to audio file using YourTTS voice cloning"""
+#         if self.tts and self.tts_available:
+#             try:
+#                 # Clean the text before processing
+#                 cleaned_text = clean_text_for_tts(text)
+#                 if not cleaned_text:
+#                     print("⚠️  Text was empty after cleaning, skipping TTS")
+#                     return False
+                
+#                 print(f"Generating speech for: {cleaned_text}")
+                
+#                 # Use YourTTS with voice cloning
+#                 self.tts.tts_to_file(
+#                     text=cleaned_text, 
+#                     file_path=filename,
+#                     speaker_wav=self.reference_audio_path,
+#                     language="en"
+#                 )
+#                 print(f"Audio saved to {filename}")
+#                 return True
+#             except Exception as e:
+#                 print(f"Error generating audio: {e}")
+#                 return False
+#         return False
+    
+#     def play_file(self, filename):
+#         """Play audio file using pygame"""
+#         try:
+#             pygame.mixer.music.load(filename)
+#             pygame.mixer.music.play()
+            
+#             # Wait for playback to finish
+#             while pygame.mixer.music.get_busy():
+#                 pygame.time.Clock().tick(10)
+                
+#             print("Playback finished!")
+#         except Exception as e:
+#             print(f"Error playing file: {e}")
+    
+#     def stream_text_to_speech(self, text, chunk_length=100, speaker=None):
+#         """Stream text to speech in chunks for real-time playback using YourTTS"""
+#         if not self.tts_available or not self.mixer_initialized:
+#             print("❌ YourTTS or mixer not initialized")
+#             return False
+        
+#         try:
+#             # Clean the text
+#             cleaned_text = clean_text_for_tts(text)
+#             if not cleaned_text:
+#                 print("⚠️  Text was empty after cleaning, skipping TTS")
+#                 return False
+            
+#             # Split into chunks
+#             chunks = split_text_into_chunks(cleaned_text, chunk_length)
+            
+#             if not chunks:
+#                 return False
+            
+#             print(f"🔊 Streaming {len(chunks)} chunks with YourTTS...")
+            
+#             # Process and play each chunk
+#             for i, chunk in enumerate(chunks):
+#                 if not chunk.strip():
+#                     continue
+                
+#                 # Generate unique filename for this chunk
+#                 chunk_filename = f"chunk_{int(time.time())}_{i}.wav"
+                
+#                 try:
+#                     print(f"🎵 Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
+                    
+#                     # Generate audio for this chunk using YourTTS voice cloning
+#                     self.tts.tts_to_file(
+#                         text=chunk, 
+#                         file_path=chunk_filename,
+#                         speaker_wav=self.reference_audio_path,
+#                         language="en"
+#                     )
+                    
+#                     # Play the chunk
+#                     pygame.mixer.music.load(chunk_filename)
+#                     pygame.mixer.music.play()
+                    
+#                     # Wait for this chunk to finish playing
+#                     while pygame.mixer.music.get_busy():
+#                         pygame.time.Clock().tick(10)
+                    
+#                     # Clean up the chunk file
+#                     try:
+#                         os.remove(chunk_filename)
+#                     except:
+#                         pass
+                        
+#                 except Exception as e:
+#                     print(f"❌ Error processing chunk {i+1}: {e}")
+#                     # Clean up file if it exists
+#                     try:
+#                         os.remove(chunk_filename)
+#                     except:
+#                         pass
+#                     continue
+            
+#             print("✅ YourTTS streaming complete!")
+#             return True
+            
+#         except Exception as e:
+#             print(f"❌ Error in YourTTS streaming: {e}")
+#             return False
+
+# # # Usage
+# # tts_file = OfflineTTSFile()
+# # if tts_file.convert_to_file("Hey, How are you going!", "test.wav"):
+# #     tts_file.play_file("test.wav")
+
+
 class OfflineTTSFile:
     def __init__(self):
         try:
-            # Initialize YourTTS model
-            self.tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False)
-            print("YourTTS initialized successfully!")
+            # Initialize XTTS v2 model
+            self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=False)
+            print("XTTS v2 initialized successfully!")
             self.tts_available = True
             
             # Set the reference audio file path for voice cloning
-            # Update this path to your actual .wav file
+            # XTTS v2 works best with 6-10 seconds of clean audio
             self.reference_audio_path = os.path.join(os.path.dirname(__file__), "voice_example.wav")
             
         except Exception as e:
-            print(f"Error initializing YourTTS: {e}")
-            print("⚠️  YourTTS will be disabled. Speech responses will be text-only.")
+            print(f"Error initializing XTTS v2: {e}")
+            print("⚠️  XTTS v2 will be disabled. Speech responses will be text-only.")
             self.tts = None
             self.tts_available = False
         
@@ -142,7 +294,7 @@ class OfflineTTSFile:
             return False
     
     def convert_to_file(self, text, filename="output.wav", speaker=None):
-        """Convert text to audio file using YourTTS voice cloning"""
+        """Convert text to audio file using XTTS v2 voice cloning"""
         if self.tts and self.tts_available:
             try:
                 # Clean the text before processing
@@ -153,12 +305,14 @@ class OfflineTTSFile:
                 
                 print(f"Generating speech for: {cleaned_text}")
                 
-                # Use YourTTS with voice cloning
+                # Use XTTS v2 with voice cloning
                 self.tts.tts_to_file(
                     text=cleaned_text, 
                     file_path=filename,
                     speaker_wav=self.reference_audio_path,
-                    language="en"
+                    language="en",
+                    # XTTS v2 specific parameters
+                    split_sentences=True  # Helps with longer texts
                 )
                 print(f"Audio saved to {filename}")
                 return True
@@ -182,9 +336,9 @@ class OfflineTTSFile:
             print(f"Error playing file: {e}")
     
     def stream_text_to_speech(self, text, chunk_length=100, speaker=None):
-        """Stream text to speech in chunks for real-time playback using YourTTS"""
+        """Stream text to speech in chunks for real-time playback using XTTS v2"""
         if not self.tts_available or not self.mixer_initialized:
-            print("❌ YourTTS or mixer not initialized")
+            print("❌ XTTS v2 or mixer not initialized")
             return False
         
         try:
@@ -200,7 +354,7 @@ class OfflineTTSFile:
             if not chunks:
                 return False
             
-            print(f"🔊 Streaming {len(chunks)} chunks with YourTTS...")
+            print(f"🔊 Streaming {len(chunks)} chunks with XTTS v2...")
             
             # Process and play each chunk
             for i, chunk in enumerate(chunks):
@@ -213,12 +367,13 @@ class OfflineTTSFile:
                 try:
                     print(f"🎵 Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
                     
-                    # Generate audio for this chunk using YourTTS voice cloning
+                    # Generate audio for this chunk using XTTS v2 voice cloning
                     self.tts.tts_to_file(
                         text=chunk, 
                         file_path=chunk_filename,
                         speaker_wav=self.reference_audio_path,
-                        language="en"
+                        language="en",
+                        split_sentences=True
                     )
                     
                     # Play the chunk
@@ -244,14 +399,9 @@ class OfflineTTSFile:
                         pass
                     continue
             
-            print("✅ YourTTS streaming complete!")
+            print("✅ XTTS v2 streaming complete!")
             return True
             
         except Exception as e:
-            print(f"❌ Error in YourTTS streaming: {e}")
+            print(f"❌ Error in XTTS v2 streaming: {e}")
             return False
-
-# # Usage
-# tts_file = OfflineTTSFile()
-# if tts_file.convert_to_file("Hey, How are you going!", "test.wav"):
-#     tts_file.play_file("test.wav")

@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Optional
 
 # Add program_files to path to import Gemma client
-sys.path.append(str(Path(__file__).parent.parent / "program_files"))
+sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
 
 # Import Gemma client
 from ai.gemma_client import GemmaClient
 
 # Import RAG configuration and prompt templates
 from .config import RAGConfig, get_config
-from .prompt_templates import get_template
+from rag_functions.templates.prompt_templates import get_template
 
 def analyze_with_llm(parsed_entities, reference_chunks=None, prompt: str = None, config: Optional[RAGConfig] = None):
     """
@@ -187,7 +187,7 @@ def process_with_gemma(parsed_entities, prompt: str, config: Optional[RAGConfig]
     question_generation_prompt = f"""
         Based on the following document and the prompt: "{prompt}"
 
-        Please generate 5-8 relevant problems the patient is likely to face given the information provided.
+        Please identify all the relevant problems the patient is likely to face given the information provided, think about the different contexts the patient may be in. I expect there will be many problems in many different contexts, so please identify all of them.
         Return the problems in the following format, with each problem wrapped in curly brackets:
 
         {{Problem 1}}
@@ -195,7 +195,7 @@ def process_with_gemma(parsed_entities, prompt: str, config: Optional[RAGConfig]
         {{Problem 3}}
         ...and so on
 
-        Focus on Problems that are most relevant to the given prompt.
+        Focus on Problems that are most relevant to the given prompt. Do not miss any problems. 
         """
     
     if config.verbose:
@@ -234,11 +234,11 @@ def process_with_gemma(parsed_entities, prompt: str, config: Optional[RAGConfig]
     
     for i, question in enumerate(questions):
         answer_prompt = f"""
-            Based on the document, please provide medical advise for the following problem:
+            Based on the document, please provide medical or care advice for the following problem:
 
             {question}
 
-            Provide a short sharp answer that directly identifies the advise for the problem based on information from the document. 
+            Provide a short sharp answer that directly identifies the medical or care advise for the problem based on information from the document. 
             Do not tell me what the document doesn't include, provide a brief answer no more than two sentences which is as useful as possible.
             Return your answer in the following format:
 

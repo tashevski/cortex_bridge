@@ -13,9 +13,9 @@ from pathlib import Path
 # Add program_files to path
 sys.path.append(str(Path(__file__).parent.parent / "program_files"))
 
-from config import get_config, RAGConfig
-from prompt_templates import get_template, list_templates, get_template_for_use_case, create_custom_template
-from main import process_document
+from rag_functions.core.config import get_config, RAGConfig
+from rag_functions.templates.prompt_templates import get_template, list_templates, get_template_for_use_case, create_custom_template
+from rag_functions.core.main import process_document
 
 def demo_available_templates():
     """Show all available templates"""

@@ -1,38 +1,29 @@
 ## Structured Summary of Behavior Support Plan for John Doe
 
-Here's a structured summary of the key entities, topics, and sections extracted from the provided document:
+**Document Type:** Comprehensive Behavior Support Plan
 
-**1. Person Details:**
+**Person:** John Doe
 
-*   **Name:** John Doe
+**Key Entities:**
 
-**2. Practitioner/Provider Details:**
+*   **John Doe:** Patient/Individual receiving the plan.
+*   **Dr. Emily White:** Geriatrician (Provider).
+*   **MMSE:** Mini-Mental State Examination (Cognitive Assessment).
 
-*   **Geriatrician:** Dr. Emily White (Assessment Report Date: 2025-06-10)
+**Topics:**
 
-**3. Purpose:**
+*   **Behavioral Issues:** Wandering and agitation (onset approximately 6 months ago).
+*   **Interventions:** Redirection of attention, providing a quiet space.
+*   **Restrictive Practices:** Explicitly stated as *not* to be used.
+*   **Assessment:** Geriatric Assessment Report, Cognitive Assessment (MMSE).
 
-*   The plan aims to provide comprehensive behavior support.
+**Sections:**
 
-**4. Consultation History:**
-
-*   **Geriatrician Assessment:** Dr. Emily White (2025-06-10)
-*   **Cognitive Assessment (MMSE):** 2025-06-15
-
-**5. History of Behavior & Interventions:**
-
-*   **Behavioral Issue:** Wandering and agitation (began approximately 6 months ago).
-*   **Previous Interventions:** Redirection of attention, providing a quiet space.
-
-**6. Response Strategies:**
-
-*   **Restrictive Practices:**  No regulated restrictive practices are to be used.
-
-**Document Sections:**
-
-*   Person Details
-*   Practitioner and Provider Details
-*   Purpose
-*   Consultation with Others
-*   History of Behavior and Intervention
-*   Response Strategies
+1.  **Person Details:** (Implied - contains John Doe's name)
+2.  **Practitioner and Provider Details:** (Implied - mentions Dr. Emily White)
+3.  **Purpose:** Outlines the plan's objective (not fully specified in the provided excerpt).
+4.  **Consultation with Others:** Lists assessments conducted:
+    *   Geriatric Assessment Report - Dr. Emily White (2025-06-10)
+    *   Cognitive Assessment (MMSE) (2025-06-15)
+5.  **History of Behavior and Intervention:** Describes the onset and previous interventions for wandering and agitation.
+6.  **Response Strategies:**  Specifies the absence of regulated restrictive practices.

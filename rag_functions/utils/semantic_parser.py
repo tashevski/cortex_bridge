@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 # Add program_files to path to import Gemma client
-sys.path.append(str(Path(__file__).parent.parent / "program_files"))
+sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
 
 from ai.gemma_client import GemmaClient
 

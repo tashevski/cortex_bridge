@@ -30,7 +30,7 @@ def filter_consistent_dimensions(features, metadata):
     print(f"📊 Using {len(filtered_features)}/{len(features)} samples with {most_common_dim}D features")
     return filtered_features, filtered_metadata
 
-def cluster_speakers(n_speakers=2):
+def cluster_vectors(n_speakers=2):
     """Cluster audio features using GMM to identify speakers"""
     db = EnhancedConversationDB()
     features, metadata = db.get_data("audio_features", return_features=True)
@@ -52,7 +52,7 @@ def cluster_speakers(n_speakers=2):
     
     return labels, metadata
 
-def find_optimal_speakers():
+def find_optimal_clusters():
     """Find optimal number of speakers using BIC score"""
     db = EnhancedConversationDB()
     features, metadata = db.get_data("audio_features", return_features=True)
@@ -79,7 +79,7 @@ def find_optimal_speakers():
     print(f"📊 Tested {max_speakers} configurations")
     
     # Run clustering with optimal number
-    labels, _ = cluster_speakers(optimal_n)
+    labels, _ = cluster_vectors(optimal_n)
     return optimal_n, labels, metadata
 
 def update_database_speakers(confidence_threshold=0.8):
@@ -140,10 +140,10 @@ def update_database_speakers(confidence_threshold=0.8):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "auto":
-        find_optimal_speakers()
+        find_optimal_clusters()
     elif len(sys.argv) > 1 and sys.argv[1] == "update":
         confidence = float(sys.argv[2]) if len(sys.argv) > 2 else 0.8
         update_database_speakers(confidence)
     else:
         n = int(sys.argv[1]) if len(sys.argv) > 1 else 2
-        cluster_speakers(n)
+        cluster_vectors(n)
