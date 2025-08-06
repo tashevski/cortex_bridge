@@ -5,7 +5,7 @@ from .gemma_client import GemmaClient
 from .smart_model_selector import SmartModelSelector  
 from .model_preloader import ModelPreloader
 from .latency_monitor import LatencyMonitor
-from config.config import GemmaClientConfig
+from program_files.config.config import GemmaClientConfig
 import requests
 import time
 from typing import Optional
@@ -15,7 +15,7 @@ class OptimizedGemmaClient(GemmaClient):
     
     def __init__(self, config: Optional[GemmaClientConfig] = None):
         if config is None:
-            from config.config import cfg
+            from program_files.config.config import cfg
             config = cfg.gemma_client
             
         super().__init__(config.default_model, config.base_url)

@@ -1,18 +1,21 @@
-# Core functionality
-from .core import process_document, analyze_with_llm, process_with_gemma, RAGConfig, get_config, process_medical_document
+# Temporarily commented out to avoid circular imports when running scripts directly
+# Uncomment these when using as a package
 
-# Template functionality  
-from .templates import get_template, list_templates, PromptTemplate
+# # Core functionality
+# from .core import process_document, analyze_with_llm, process_with_gemma, RAGConfig, get_config, process_medical_document
 
-# ML and AI functionality
-from .ml import select_optimal_templates, analyze_document_type, extract_cue_cards, CueCard, format_cue_cards
+# # Template functionality  
+# from .templates import get_template, list_templates, PromptTemplate
 
-# Utility functions
-from .utils import setup_vector_db, retrieve_references, parse_document, extract_text_and_layout
+# # ML and AI functionality
+# from .ml import select_optimal_templates, analyze_document_type, extract_cue_cards, CueCard, format_cue_cards
 
-__all__ = [
-    'process_document', 'analyze_with_llm', 'process_with_gemma', 'RAGConfig', 'get_config', 'process_medical_document',
-    'get_template', 'list_templates', 'PromptTemplate',
-    'select_optimal_templates', 'analyze_document_type', 'extract_cue_cards', 'CueCard', 'format_cue_cards',
-    'setup_vector_db', 'retrieve_references', 'parse_document', 'extract_text_and_layout'
-]
+# # Utility functions
+# from .utils import setup_vector_db, retrieve_references, parse_document, extract_text_and_layout
+
+# __all__ = [
+#     'process_document', 'analyze_with_llm', 'process_with_gemma', 'RAGConfig', 'get_config', 'process_medical_document',
+#     'get_template', 'list_templates', 'PromptTemplate',
+#     'select_optimal_templates', 'analyze_document_type', 'extract_cue_cards', 'CueCard', 'format_cue_cards',
+#     'setup_vector_db', 'retrieve_references', 'parse_document', 'extract_text_and_layout'
+# ]

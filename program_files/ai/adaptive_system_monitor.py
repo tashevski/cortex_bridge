@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 import time, threading, logging
 from datetime import datetime, timedelta
 from enum import Enum
-from config.runtime_config import runtime_config
+from program_files.config.runtime_config import runtime_config
 
 logger = logging.getLogger(__name__)
 

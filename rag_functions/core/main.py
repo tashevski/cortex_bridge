@@ -1,15 +1,32 @@
+import sys
+from pathlib import Path
+
+# Add parent directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from rag_functions.utils.ocr_layout_copy import extract_text_and_layout
 from rag_functions.utils.semantic_parser import parse_document
 from rag_functions.utils.retrieval import setup_vector_db, retrieve_references, extract_medical_issues_list
-from .llm_analysis import analyze_with_llm, create_cue_cards
+from rag_functions.core.llm_analysis import analyze_with_llm, create_cue_cards
 from rag_functions.templates.prompt_templates import get_template
-from rag_functions.ml.vector_operations import select_optimal_templates, analyze_document_type
-from rag_functions.ml.cue_card_extraction import extract_cue_cards
-from .config import get_config
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
-from ai.gemma_client import GemmaClient
+# Optional ML imports (require sentence_transformers)
+try:
+    from rag_functions.ml.vector_operations import select_optimal_templates, analyze_document_type
+    from rag_functions.ml.cue_card_extraction import extract_cue_cards
+    ML_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: ML modules not available: {e}")
+    ML_AVAILABLE = False
+    # Provide stub functions
+    def select_optimal_templates(*args, **kwargs):
+        return []
+    def analyze_document_type(*args, **kwargs):
+        return {}
+    def extract_cue_cards(*args, **kwargs):
+        return []
+from rag_functions.core.config import get_config
+from program_files.ai.gemma_client import GemmaClient
 import re
 import json
 
@@ -39,6 +56,7 @@ def process_document(file_path, reference_texts=None, use_medical_templates=True
         prompt = f"briefly summarise and identify any issues relating to {issue} in the associated conversations, briefly describe what happened and whether it was effective:"
         print(prompt)
         adaptive_prompts.append(prompt)
+    print(adaptive_prompts)
     
     individual_relevant_prompts = [
         "medical and care advice for family",
@@ -48,8 +66,11 @@ def process_document(file_path, reference_texts=None, use_medical_templates=True
         "medical and care advice for doctors relevant to the context",
         ]
    
-    contextual_response = create_cue_cards(parsed, individual_relevant_prompts)
-
+    # Process each prompt separately and combine responses
+    contextual_responses = {}
+    for prompt in individual_relevant_prompts:
+        contextual_responses[prompt] = create_cue_cards(txt, prompt)
+        #print(contextual_responses[prompt])
 
 
     # Setup references

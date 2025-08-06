@@ -1,8 +1,10 @@
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
 
-from ai.gemma_client import GemmaClient
+# Add parent directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from program_files.ai.gemma_client import GemmaClient
 
 def parse_document(text, input_prompt = "Extract key entities, topics, and sections from the following document. Provide a structured summary:"):
     client = GemmaClient()

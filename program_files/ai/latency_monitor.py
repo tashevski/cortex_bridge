@@ -6,7 +6,7 @@ import threading
 from collections import deque
 from typing import Optional, Callable, Dict, Any
 from dataclasses import dataclass
-from config.config import LatencyMonitorConfig
+from program_files.config.config import LatencyMonitorConfig
 
 @dataclass
 class LatencyMetrics:

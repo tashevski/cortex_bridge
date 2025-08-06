@@ -1,10 +1,13 @@
 import sys
 from pathlib import Path
 from typing import Optional
-sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
 
-from ai.gemma_client import GemmaClient
-from .config import RAGConfig, get_config
+# Add parent directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from program_files.ai.gemma_client import GemmaClient
+from rag_functions.core.config import RAGConfig, get_config
 from rag_functions.templates.prompt_templates import get_template
 
 def analyze_with_llm(parsed_entities, reference_chunks=None, prompt: str = None, config: RAGConfig = None):
