@@ -4,23 +4,27 @@
 from typing import Dict, Optional
 import json
 
-def get_vector_context(query: str, conversation_context: str = "", top_k: int = 3) -> Optional[Dict]:
+def get_vector_context(query: str, conversation_context: str = "", top_k: int = 3, vector_db=None) -> Optional[Dict]:
     """Get relevant vector context from database"""
     try:
-        from rag_functions.utils.retrieval import search_cue_cards, search_adaptive_prompts
-        
-        # Search for relevant content
-        cue_cards = search_cue_cards(query, top_k=top_k)
-        adaptive_prompts = search_adaptive_prompts(query, top_k=top_k)
-        
-        if not cue_cards and not adaptive_prompts:
+        # Use provided vector_db or get from conversation manager
+        if vector_db is None:
             return None
         
+        # Get vector context using the database class
+        context = vector_db.get_vector_context(query, top_k=top_k)
+        
+        if not context:
+            return None
+        
+        # Format for Gemma client
         return {
-            "relevant_cue_cards": [{"q": c["metadata"].get("question", ""), "a": c["metadata"].get("answer", "")} for c in cue_cards],
-            "relevant_prompts": [{"issue": p["metadata"].get("medical_issue", ""), "prompt": p["content"]} for p in adaptive_prompts]
+            "relevant_cue_cards": [{"q": c.get("question", ""), "a": c.get("answer", "")} for c in context.get("relevant_cue_cards", [])],
+            "relevant_prompts": [{"issue": p.get("issue", ""), "prompt": p.get("prompt", "")} for p in context.get("relevant_prompts", [])],
+            "similar_conversations": [{"text": c.get("text", ""), "speaker": c.get("speaker", "")} for c in context.get("similar_conversations", [])]
         }
-    except:
+    except Exception as e:
+        print(f"Error getting vector context: {e}")
         return None
 
 def handle_gemma_response(gemma_client, text: str, context: str, conversation_manager, tts_file=None, prompt_template=None, image_path=None, use_vector_context=True):
@@ -28,8 +32,8 @@ def handle_gemma_response(gemma_client, text: str, context: str, conversation_ma
     
     # Get vector context if enabled
     vector_context = None
-    if use_vector_context:
-        vector_context = get_vector_context(text, context)
+    if use_vector_context and conversation_manager.vector_db:
+        vector_context = get_vector_context(text, context, vector_db=conversation_manager.vector_db)
     
     response = gemma_client.generate_response_optimized(text, context, prompt_template=prompt_template, image_path=image_path, vector_context=vector_context)
     if response:

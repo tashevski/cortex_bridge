@@ -231,76 +231,144 @@ class EnhancedConversationDB:
         except: return []
     
     def get_gemma_conversations_for_finetuning(self, days_back: int = 1) -> Dict[str, Any]:
-        """Get Gemma conversations with feedback for fine-tuning, save as JSON"""
-        results = self.conversations.get(include=['metadatas', 'documents'])
-        if not results.get('metadatas'): return {}
+        """Get Gemma conversations for fine-tuning"""
+        cutoff_date = datetime.now() - timedelta(days=days_back)
         
-        end_time = datetime.now()
-        start_time = end_time - timedelta(days=days_back)
+        # Get all conversations
+        data = self.conversations.get()
         
-        # Group conversations by session within date range
-        sessions = {}
-        for i, metadata in enumerate(results['metadatas']):
-            timestamp_str = metadata.get('timestamp')
-            if not timestamp_str: continue
-            
-            try:
-                conv_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')) if 'T' in timestamp_str else datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                if start_time <= conv_time <= end_time:
-                    session_id = metadata.get('session_id')
-                    if session_id not in sessions:
-                        sessions[session_id] = []
-                    sessions[session_id].append({
-                        'text': results['documents'][i],
-                        'metadata': metadata,
-                        'timestamp': conv_time,
-                        'feedback_helpful': metadata.get('feedback_helpful', '')
-                    })
-            except: continue
+        gemma_conversations = []
+        for i, metadata in enumerate(data['metadatas']):
+            if metadata.get('is_gemma_mode') and metadata.get('session_id'):
+                try:
+                    timestamp = datetime.fromisoformat(metadata.get('timestamp', ''))
+                    if timestamp >= cutoff_date:
+                        gemma_conversations.append({
+                            'text': data['documents'][i],
+                            'metadata': metadata
+                        })
+                except:
+                    continue
         
-        # Build result dictionary for sessions with Gemma
-        result_dict = {}
-        conversation_counter = 1
-        
-        for session_id, session_conversations in sessions.items():
-            if not any('[GEMMA]' in conv['text'] for conv in session_conversations):
-                continue
+        return {
+            'conversations': gemma_conversations,
+            'total_count': len(gemma_conversations)
+        }
+
+    def get_vector_context(self, query: str, top_k: int = 3) -> Optional[Dict[str, Any]]:
+        """Get relevant vector context for a query"""
+        try:
+            # Search for cue cards
+            cue_cards = self.search_cue_cards(query, top_k=top_k)
             
-            session_conversations.sort(key=lambda x: x['timestamp'])
+            # Search for adaptive prompts
+            adaptive_prompts = self.search_adaptive_prompts(query, top_k=top_k)
             
-            # Get session feedback
-            session_feedback = next((conv['feedback_helpful'] for conv in session_conversations 
-                                   if conv['feedback_helpful'] and conv['feedback_helpful'] != 'unknown'), None)
+            # Search for similar conversations
+            similar_conversations = self.search_conversations(query, top_k=top_k)
             
-            # Build conversation text
-            conversation_lines = []
-            for conv in session_conversations:
-                full_text = conv['text']
-                if ': ' in full_text:
-                    speaker_text = full_text.split(': ', 1)[1]
-                else:
-                    speaker_text = full_text
-                speaker_text = speaker_text.replace(' [GEMMA]', '')
-                speaker = conv['metadata'].get('speaker', 'Unknown')
-                conversation_lines.append(f"{speaker}: {speaker_text}")
+            if not cue_cards and not adaptive_prompts and not similar_conversations:
+                return None
             
-            result_dict[f"conversation_{conversation_counter}"] = {
-                "feedback_helpful": session_feedback,
-                "full_text": "\n".join(conversation_lines),
-                "session_id": session_id,
-                "timestamp": session_conversations[0]['timestamp'].isoformat(),
-                "message_count": len(session_conversations)
+            return {
+                "relevant_cue_cards": cue_cards,
+                "relevant_prompts": adaptive_prompts,
+                "similar_conversations": similar_conversations
             }
-            conversation_counter += 1
-        
-        # Save to JSON file
-        output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'fine_tuning', 'data')
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filename = f"gemma_conversations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(output_dir, filename)
-        
-        with open(filepath, 'w') as f:
-            json.dump(result_dict, f, indent=2, default=str)
-        
-        return result_dict
+        except Exception as e:
+            print(f"Error getting vector context: {e}")
+            return None
+
+    def search_cue_cards(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Search for cue cards in the database"""
+        try:
+            # Build filter for cue cards
+            filter_conditions = {"content_type": {"$eq": "cue_card"}}
+            
+            # Search the database
+            results = self.conversations.query(
+                query_texts=[query],
+                n_results=top_k,
+                where=filter_conditions
+            )
+            
+            # Format results
+            cue_cards = []
+            if results['documents'] and results['documents'][0]:
+                for i, doc in enumerate(results['documents'][0]):
+                    metadata = results['metadatas'][0][i] if results['metadatas'] and results['metadatas'][0] else {}
+                    cue_cards.append({
+                        "question": metadata.get("question", ""),
+                        "answer": metadata.get("answer", ""),
+                        "prompt_type": metadata.get("prompt_type", ""),
+                        "metadata": metadata
+                    })
+            
+            return cue_cards
+        except Exception as e:
+            print(f"Error searching cue cards: {e}")
+            return []
+
+    def search_adaptive_prompts(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Search for adaptive prompts in the database"""
+        try:
+            # Build filter for adaptive prompts
+            filter_conditions = {"content_type": {"$eq": "adaptive_prompt"}}
+            
+            # Search the database
+            results = self.conversations.query(
+                query_texts=[query],
+                n_results=top_k,
+                where=filter_conditions
+            )
+            
+            # Format results
+            adaptive_prompts = []
+            if results['documents'] and results['documents'][0]:
+                for i, doc in enumerate(results['documents'][0]):
+                    metadata = results['metadatas'][0][i] if results['metadatas'] and results['metadatas'][0] else {}
+                    adaptive_prompts.append({
+                        "issue": metadata.get("medical_issue", ""),
+                        "prompt": doc,
+                        "metadata": metadata
+                    })
+            
+            return adaptive_prompts
+        except Exception as e:
+            print(f"Error searching adaptive prompts: {e}")
+            return []
+
+    def search_conversations(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Search for similar conversations in the database"""
+        try:
+            # Search all conversations (excluding cue cards and adaptive prompts)
+            results = self.conversations.query(
+                query_texts=[query],
+                n_results=top_k * 2  # Get more to filter out non-conversations
+            )
+            
+            # Filter to actual conversations (not cue cards or adaptive prompts)
+            conversations = []
+            if results['documents'] and results['documents'][0]:
+                for i, doc in enumerate(results['documents'][0]):
+                    metadata = results['metadatas'][0][i] if results['metadatas'] and results['metadatas'][0] else {}
+                    
+                    # Skip cue cards and adaptive prompts
+                    if metadata.get('content_type') in ['cue_card', 'adaptive_prompt']:
+                        continue
+                    
+                    conversations.append({
+                        "text": doc,
+                        "speaker": metadata.get("speaker", ""),
+                        "role": metadata.get("role", ""),
+                        "is_gemma_mode": metadata.get("is_gemma_mode", False),
+                        "metadata": metadata
+                    })
+                    
+                    if len(conversations) >= top_k:
+                        break
+            
+            return conversations
+        except Exception as e:
+            print(f"Error searching conversations: {e}")
+            return []

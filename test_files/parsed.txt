@@ -1,0 +1,38 @@
+## Structured Summary of Comprehensive Behavior Support Plan - John Doe
+
+Here's a structured summary of the provided document, focusing on key entities, topics, and sections:
+
+**1. Person Details:**
+
+*   **Name:** John Doe
+
+**2. Practitioner/Provider Details:**
+
+*   **Geriatrician:** Dr. Emily White (Consultation date: 2025-06-10)
+
+**3. Purpose:**
+
+*   The plan aims to provide comprehensive behavior support for John Doe.
+
+**4. Consultation History:**
+
+*   **Geriatrician Assessment:** Dr. Emily White (2025-06-10)
+*   **Cognitive Assessment (MMSE):** 2025-06-15
+
+**5. History of Behavior and Interventions:**
+
+*   **Problem:** Wandering and agitation began approximately 6 months ago.
+*   **Previous Interventions:** Redirection of attention, providing a quiet space.
+
+**6. Response Strategies:**
+
+*   **Restrictive Practices:**  No regulated restrictive practices will be used.
+
+**Topics Covered:**
+
+*   Behavioral Support Plan
+*   Geriatric Assessment
+*   Cognitive Assessment (MMSE)
+*   Wandering and Agitation
+*   Behavioral Interventions
+*   Restrictive Practices (Absence of)

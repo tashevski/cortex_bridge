@@ -7,8 +7,36 @@ Minimal integration that automatically adds relevant vector database context to 
 ## How It Works
 
 1. **Query Processing**: When a user asks a question, the system searches the vector database for relevant content
-2. **Context Retrieval**: Finds similar cue cards and adaptive prompts based on semantic similarity
+2. **Context Retrieval**: Finds similar cue cards, adaptive prompts, and conversations based on semantic similarity
 3. **Response Enhancement**: Adds retrieved context to the Gemma prompt for more informed responses
+
+## Implementation
+
+### Database Class Integration
+
+The integration uses the existing `EnhancedConversationDB` class with new methods:
+
+```python
+# New methods added to EnhancedConversationDB:
+db.get_vector_context(query, top_k=3)           # Get all relevant context
+db.search_cue_cards(query, top_k=3)            # Search cue cards only
+db.search_adaptive_prompts(query, top_k=3)     # Search adaptive prompts only
+db.search_conversations(query, top_k=3)        # Search conversations only
+```
+
+### Pipeline Integration
+
+The `handle_gemma_response()` function automatically retrieves vector context:
+
+```python
+# In pipeline_helpers.py
+def handle_gemma_response(gemma_client, text, context, conversation_manager, ...):
+    vector_context = None
+    if use_vector_context and conversation_manager.vector_db:
+        vector_context = get_vector_context(text, context, vector_db=conversation_manager.vector_db)
+    
+    response = gemma_client.generate_response_optimized(..., vector_context=vector_context)
+```
 
 ## Configuration
 
@@ -22,8 +50,8 @@ class ConversationModeConfig:
 ## What Gets Retrieved
 
 - **Cue Cards**: Question-answer pairs from medical documents
-- **Adaptive Prompts**: Medical issue-specific prompts and responses
-- **Conversations**: Similar past conversations (if available)
+- **Adaptive Prompts**: Medical issue-specific prompts and responses  
+- **Similar Conversations**: Past conversations with similar topics
 
 ## Usage
 
@@ -41,6 +69,9 @@ The integration is automatic when enabled. No additional code needed - just ask 
   ],
   "relevant_prompts": [
     {"issue": "diabetes", "prompt": "briefly summarise diabetes issues..."}
+  ],
+  "similar_conversations": [
+    {"text": "Previous diabetes discussion...", "speaker": "Patient"}
   ]
 }
 ```
@@ -51,4 +82,14 @@ The integration is automatic when enabled. No additional code needed - just ask 
 
 - Minimal latency impact (vector search is fast)
 - Automatic fallback if no relevant content found
-- Graceful error handling if database unavailable 
+- Graceful error handling if database unavailable
+- Uses existing database infrastructure
+
+## Database Structure
+
+All content is stored in the same ChromaDB instance:
+- **Conversations**: Regular chat history
+- **Cue Cards**: `content_type: "cue_card"`
+- **Adaptive Prompts**: `content_type: "adaptive_prompt"`
+
+The system automatically filters and retrieves the appropriate content types based on the query. 
