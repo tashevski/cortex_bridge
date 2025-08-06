@@ -69,8 +69,35 @@ class ConversationManager:
         return keyword_match or question_trigger or emotion_trigger
     
     def should_exit_gemma_mode(self, text: str) -> bool:
-        """Check if we should exit Gemma conversation mode"""
-        return contains_keywords(text, self.config.exit_keywords)
+        """Check if we should exit Gemma conversation mode using both keywords and context"""
+        # First check for explicit exit keywords
+        if contains_keywords(text, self.config.exit_keywords):
+            return True
+        
+        # Check for contextual exit: negative response to help phrase
+        return self._is_negative_response_to_help_phrase(text)
+    
+    def _is_negative_response_to_help_phrase(self, text: str) -> bool:
+        """Check if user is responding negatively to a help phrase from the LLM"""
+        if not self.gemma_conversation_history:
+            return False
+        
+        text_lower = text.strip().lower()
+        
+        # Check if current response is negative
+        if not contains_keywords(text_lower, self.config.negative_responses):
+            return False
+        
+        # Check if the last assistant message contained a help phrase
+        for item in reversed(self.gemma_conversation_history):
+            if not item.get('is_user', True):  # Assistant message
+                assistant_text = item.get('text', '').lower()
+                if contains_keywords(assistant_text, self.config.help_phrases):
+                    return True
+        
+        return False
+    
+
     
     def add_emotion_to_history(self, emotion_text: str, confidence: float):
         """Add emotion data to tracking history"""

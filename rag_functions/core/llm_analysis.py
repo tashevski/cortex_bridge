@@ -32,7 +32,6 @@ def process_with_gemma(content: str, prompt: str = "Analyze this content", templ
     client = GemmaClient(model="gemma3n:e4b")
     return client.generate_response(prompt, content, prompt_template=template)
 
-
 def create_cue_cards(parsed_entities, prompt: str, config: Optional[RAGConfig] = None):
     print("processing with gemma")
     """

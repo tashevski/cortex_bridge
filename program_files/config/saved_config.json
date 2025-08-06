@@ -50,6 +50,32 @@
       "goodbye",
       "end conversation"
     ],
+    "help_phrases": [
+      "do you need help with anything else",
+      "is there anything else i can help you with",
+      "can i help you with anything else",
+      "anything else you need",
+      "do you have any other questions",
+      "is there anything else",
+      "anything else i can assist with",
+      "do you need anything else",
+      "can i assist with anything else"
+    ],
+    "negative_responses": [
+      "no",
+      "nope",
+      "not really",
+      "not right now",
+      "i'm good",
+      "i'm fine",
+      "that's all",
+      "that's it",
+      "nothing else",
+      "no thanks",
+      "no thank you",
+      "i don't think so",
+      "not at the moment"
+    ],
     "question_words": [
       "what",
       "how",

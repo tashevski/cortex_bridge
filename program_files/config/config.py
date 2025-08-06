@@ -42,7 +42,27 @@ class ConversationModeConfig:
     
     # Keywords that trigger exiting Gemma mode
     exit_keywords: List[str] = field(default_factory=lambda: [
-        'exit', 'quit', 'stop', 'bye', 'goodbye', 'end conversation'
+        'exit', 'quit', 'stop', 'bye', 'goodbye', 'end conversation', 'shut up'
+    ])
+    
+    # Contextual exit detection - help phrases from LLM that should trigger exit on negative response
+    help_phrases: List[str] = field(default_factory=lambda: [
+        'do you need help with anything else',
+        'is there anything else i can help you with',
+        'can i help you with anything else',
+        'anything else you need',
+        'do you have any other questions',
+        'is there anything else',
+        'anything else i can assist with',
+        'do you need anything else',
+        'can i assist with anything else'
+    ])
+    
+    # Negative responses that should trigger exit when following help phrases
+    negative_responses: List[str] = field(default_factory=lambda: [
+        'no', 'nope', 'not really', 'not right now', 'i\'m good', 
+        'i\'m fine', 'that\'s all', 'that\'s it', 'nothing else',
+        'no thanks', 'no thank you', 'i don\'t think so', 'not at the moment'
     ])
     
     # Question detection parameters

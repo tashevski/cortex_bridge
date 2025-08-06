@@ -124,6 +124,13 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Processing LLM request")
         
         context = conversation_manager.get_conversation_context()
+
+        if prompt_template is None:
+                prompt_template = """Provide short, concise answers. respond with no more than two sentences.
+            
+                conversation: {context}
+                question: {prompt}
+                """
         
         handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file, prompt_template=prompt_template, image_path=image_path)
         
