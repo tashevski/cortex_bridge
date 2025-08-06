@@ -1,10 +1,19 @@
-from TTS.api import TTS
-import pygame
 import os
+import time
+import pygame
+import numpy as np
+import soundfile as sf
+from pathlib import Path
 import re
 import threading
-import time
 from queue import Queue
+
+# For edge-tts with Australian voice
+import edge_tts
+import asyncio
+import tempfile
+
+
 
 def clean_text_for_tts(text):
     """Remove emojis and other problematic characters for TTS processing"""
@@ -259,86 +268,86 @@ def split_text_into_chunks(text, max_chunk_length=100):
 
 class OfflineTTSFile:
     def __init__(self):
+        # Initialize flags
+        self.tts_available = False
+        self.mixer_initialized = False
+        
         try:
-            # Initialize XTTS v2 model
-            self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=False)
-            print("XTTS v2 initialized successfully!")
+            print("Initializing Australian TTS with edge-tts...")
+            
+            # Use Australian voice for better accent
+            self.voice = "en-AU-WilliamNeural"  # Australian female voice
+            # Alternative Australian voices:
+            # "en-AU-WilliamNeural" - Australian male voice
+            # "en-AU-NatashaNeural" - Australian female voice
+            # "en-AU-JennyNeural" - Australian female voice (alternative)
+            
+            print("✅ Australian TTS initialized successfully!")
             self.tts_available = True
             
-            # Set the reference audio file path for voice cloning
-            # XTTS v2 works best with 6-10 seconds of clean audio
+            # Set the reference audio file path (for reference, not used in this implementation)
             self.reference_audio_path = os.path.join(os.path.dirname(__file__), "voice_example.wav")
             
         except Exception as e:
-            print(f"Error initializing XTTS v2: {e}")
-            print("⚠️  XTTS v2 will be disabled. Speech responses will be text-only.")
-            self.tts = None
+            print(f"❌ Error initializing Australian TTS: {e}")
+            print("⚠️  Australian TTS will be disabled. Speech responses will be text-only.")
             self.tts_available = False
         
-        # Initialize pygame mixer for streaming
+        # Initialize pygame mixer
         try:
-            pygame.mixer.init()
+            print("Initializing pygame mixer...")
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self.mixer_initialized = True
+            print("✅ Pygame mixer initialized successfully!")
         except Exception as e:
-            print(f"Error initializing pygame mixer: {e}")
+            print(f"❌ Error initializing pygame mixer: {e}")
             self.mixer_initialized = False
-    
-    def set_reference_audio(self, audio_path):
-        """Set a new reference audio file for voice cloning"""
-        if os.path.exists(audio_path):
-            self.reference_audio_path = audio_path
-            print(f"✅ Reference audio updated to: {audio_path}")
-            return True
-        else:
-            print(f"❌ Reference audio file not found: {audio_path}")
-            return False
-    
-    def convert_to_file(self, text, filename="output.wav", speaker=None):
-        """Convert text to audio file using XTTS v2 voice cloning"""
-        if self.tts and self.tts_available:
-            try:
-                # Clean the text before processing
-                cleaned_text = clean_text_for_tts(text)
-                if not cleaned_text:
-                    print("⚠️  Text was empty after cleaning, skipping TTS")
-                    return False
-                
-                print(f"Generating speech for: {cleaned_text}")
-                
-                # Use XTTS v2 with voice cloning
-                self.tts.tts_to_file(
-                    text=cleaned_text, 
-                    file_path=filename,
-                    speaker_wav=self.reference_audio_path,
-                    language="en",
-                    # XTTS v2 specific parameters
-                    split_sentences=True  # Helps with longer texts
-                )
-                print(f"Audio saved to {filename}")
-                return True
-            except Exception as e:
-                print(f"Error generating audio: {e}")
-                return False
-        return False
-    
-    def play_file(self, filename):
-        """Play audio file using pygame"""
+        
+        print(f"TTS Status - Available: {self.tts_available}, Mixer: {self.mixer_initialized}")
+
+    async def generate_australian_tts(self, text, output_path):
+        """Generate TTS using Australian voice with edge-tts"""
+        communicate = edge_tts.Communicate(text, self.voice)
+        await communicate.save(output_path)
+        
+        # Convert to WAV format if needed for pygame compatibility
         try:
-            pygame.mixer.music.load(filename)
-            pygame.mixer.music.play()
+            import subprocess
+            # Use ffmpeg to convert to proper WAV format
+            temp_path = output_path.replace('.wav', '_temp.wav')
+            os.rename(output_path, temp_path)
             
-            # Wait for playback to finish
-            while pygame.mixer.music.get_busy():
-                pygame.time.Clock().tick(10)
+            # Convert to standard WAV format
+            subprocess.run([
+                'ffmpeg', '-i', temp_path, 
+                '-acodec', 'pcm_s16le', 
+                '-ar', '44100', 
+                '-ac', '2', 
+                output_path, 
+                '-y'  # Overwrite output file
+            ], check=True, capture_output=True)
+            
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
                 
-            print("Playback finished!")
         except Exception as e:
-            print(f"Error playing file: {e}")
+            print(f"⚠️  Audio conversion warning: {e}")
+            # If conversion fails, try to use the original file
+            if os.path.exists(temp_path):
+                os.rename(temp_path, output_path)
+
     
     def stream_text_to_speech(self, text, chunk_length=100, speaker=None):
-        """Stream text to speech in chunks for real-time playback using XTTS v2"""
-        if not self.tts_available or not self.mixer_initialized:
-            print("❌ XTTS v2 or mixer not initialized")
+        """Stream text to speech in chunks for real-time playback using Australian TTS"""
+        print(f"stream_text_to_speech called - TTS: {self.tts_available}, Mixer: {self.mixer_initialized}")
+        
+        if not self.tts_available:
+            print("❌ Australian TTS not available")
+            return False
+            
+        if not self.mixer_initialized:
+            print("❌ Pygame mixer not initialized")
             return False
         
         try:
@@ -348,13 +357,13 @@ class OfflineTTSFile:
                 print("⚠️  Text was empty after cleaning, skipping TTS")
                 return False
             
-            # Split into chunks
+            # Split text into chunks for streaming
             chunks = split_text_into_chunks(cleaned_text, chunk_length)
-            
             if not chunks:
+                print("⚠️  No chunks generated, skipping TTS")
                 return False
-            
-            print(f"🔊 Streaming {len(chunks)} chunks with XTTS v2...")
+                        
+            print(f"🔊 Streaming {len(chunks)} chunks with Australian TTS...")
             
             # Process and play each chunk
             for i, chunk in enumerate(chunks):
@@ -362,19 +371,13 @@ class OfflineTTSFile:
                     continue
                 
                 # Generate unique filename for this chunk
-                chunk_filename = f"chunk_{int(time.time())}_{i}.wav"
+                chunk_filename = f"australian_chunk_{int(time.time())}_{i}.wav"
                 
                 try:
                     print(f"🎵 Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
                     
-                    # Generate audio for this chunk using XTTS v2 voice cloning
-                    self.tts.tts_to_file(
-                        text=chunk, 
-                        file_path=chunk_filename,
-                        speaker_wav=self.reference_audio_path,
-                        language="en",
-                        split_sentences=True
-                    )
+                    # Generate Australian TTS
+                    asyncio.run(self.generate_australian_tts(chunk, chunk_filename))
                     
                     # Play the chunk
                     pygame.mixer.music.load(chunk_filename)
@@ -386,7 +389,8 @@ class OfflineTTSFile:
                     
                     # Clean up the chunk file
                     try:
-                        os.remove(chunk_filename)
+                        if os.path.exists(chunk_filename):
+                            os.remove(chunk_filename)
                     except:
                         pass
                         
@@ -394,14 +398,15 @@ class OfflineTTSFile:
                     print(f"❌ Error processing chunk {i+1}: {e}")
                     # Clean up file if it exists
                     try:
-                        os.remove(chunk_filename)
+                        if os.path.exists(chunk_filename):
+                            os.remove(chunk_filename)
                     except:
                         pass
                     continue
             
-            print("✅ XTTS v2 streaming complete!")
+            print("✅ Australian TTS streaming complete!")
             return True
             
         except Exception as e:
-            print(f"❌ Error in XTTS v2 streaming: {e}")
+            print(f"❌ Error in Australian TTS streaming: {e}")
             return False

@@ -13,7 +13,7 @@ from ai.adaptive_system_monitor import adaptive_monitor, SystemMode
 from utils.ollama_utils import ensure_ollama_running, ensure_required_models
 from config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
-from tts.tts_personal import OfflineTTSFile
+from tts.tts import OfflineTTSFile
 
 def load_vosk_model(config=None):
     """Load Vosk model using configuration"""
@@ -71,8 +71,25 @@ class EmotionClassifier:
             return "neutral", 0.0
 
 def process_text(text: str, conversation_manager: ConversationManager, gemma_client: OptimizedGemmaClient, 
-                speaker_detector, tts_file, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None):
-    """Process transcribed text based on conversation state"""
+                speaker_detector, tts_file, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None, prompt_template: str = None, image_path: Optional[str] = None):
+    """Process transcribed text based on conversation state
+    
+    Args:
+        text: Transcribed speech text
+        conversation_manager: Manages conversation state and history
+        gemma_client: AI client for generating responses
+        speaker_detector: Detects and tracks speakers
+        tts_file: Text-to-speech interface
+        audio_features: Audio feature data
+        emotion_text: Detected emotion
+        confidence: Confidence score
+        image_path: Optional path to image file for multimodal input
+        
+    Example usage with image:
+        # To analyze an image with speech:
+        process_text("What do you see in this image?", conversation_manager, gemma_client, 
+                    speaker_detector, tts_file, image_path="/path/to/image.jpg")
+    """
     
     if conversation_manager.waiting_for_feedback:
         # Set mode to processing while handling feedback
@@ -95,7 +112,9 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         conversation_manager.add_to_history(text, True, speaker_detector.current_speaker, audio_features, emotion_text, confidence)
         
         if conversation_manager.should_exit_gemma_mode(text):
-            print("Was that helpful?")
+            feedback_text = "Was that helpful?"
+            print(feedback_text)
+            tts_file.stream_text_to_speech(feedback_text, chunk_length=80)
             conversation_manager.waiting_for_feedback = True
             # Stay in listening mode for feedback
             adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Waiting for feedback")
@@ -105,7 +124,8 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Processing LLM request")
         
         context = conversation_manager.get_conversation_context()
-        handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file)
+        
+        handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file, prompt_template=prompt_template, image_path=image_path)
         
         # Return to listening after LLM response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "LLM response complete")
@@ -122,7 +142,19 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         # Set mode to GEMMA for initial processing
         adaptive_monitor.set_system_mode(SystemMode.GEMMA, "Entering conversation mode")
         
-        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file)
+        template = """<start_of_turn>system
+            You are Gemma, a medical medical assistant. Provide short, concise answers. Respond with empathy as appropriate, but do not validate inaccuracies.
+            <end_of_turn>
+
+                <start_of_turn>user
+                Here is the background conversation, before the patient asked you for help: {context}
+                Here is the patient's question: {prompt}
+
+                <end_of_turn>
+
+                <start_of_turn>model"""
+
+        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path)
         
         # Return to listening after initial response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Conversation mode active")
@@ -188,7 +220,7 @@ def main():
         
         audio_features = speaker_detector.get_current_features()
         # We skip emotion classification here to avoid duplicate costly inference.
-        process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features)
+        process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features, image_path=None)
         if audio_features:
             speaker_detector.clear_feature_buffer()
     
@@ -263,7 +295,7 @@ def main():
                 # Determine emotion for full recognized text
                 emotion_text, confidence = emotion_classifier.process(text)
                 print(f"🎭 Emotion: {emotion_text} (Confidence: {confidence:.2f})")
-                process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features, emotion_text, confidence)
+                process_text(text, conversation_manager, gemma_client, speaker_detector, tts_file, audio_features, emotion_text, confidence, image_path=None)
                 
                 if audio_features:
                     speaker_detector.clear_feature_buffer()

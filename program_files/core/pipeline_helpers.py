@@ -4,9 +4,9 @@
 from typing import Dict, Optional
 import json
 
-def handle_gemma_response(gemma_client, text: str, context: str, conversation_manager, tts_file=None):
+def handle_gemma_response(gemma_client, text: str, context: str, conversation_manager, tts_file=None, prompt_template=None, image_path=None):
     """Generate and handle Gemma response with latency tracking and TTS"""
-    response = gemma_client.generate_response_optimized(text, context)
+    response = gemma_client.generate_response_optimized(text, context, prompt_template=prompt_template, image_path=image_path)
     if response:
         print(f"🤖 Gemma: {response}")
         latency_metrics = gemma_client.get_last_latency_metrics()
