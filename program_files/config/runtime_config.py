@@ -1,6 +1,6 @@
 """Runtime configuration management for dynamic parameter updates"""
 from typing import Any, Dict, Optional, List
-from config.config import cfg
+from program_files.config.config import cfg
 import threading, json, os
 from dataclasses import fields, is_dataclass, asdict
 from pathlib import Path

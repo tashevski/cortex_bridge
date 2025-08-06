@@ -7,13 +7,13 @@ import os
 from typing import Optional, Dict
 from vosk import Model, KaldiRecognizer
 from .conversation_manager import ConversationManager
-from speech.speech_processor import SpeechProcessor, SpeakerDetector
-from ai.optimized_gemma_client import OptimizedGemmaClient
-from ai.adaptive_system_monitor import adaptive_monitor, SystemMode
-from utils.ollama_utils import ensure_ollama_running, ensure_required_models
-from config.config import cfg
+from program_files.speech.speech_processor import SpeechProcessor, SpeakerDetector
+from program_files.ai.optimized_gemma_client import OptimizedGemmaClient
+from program_files.ai.adaptive_system_monitor import adaptive_monitor, SystemMode
+from program_files.utils.ollama_utils import ensure_ollama_running, ensure_required_models
+from program_files.config.config import cfg
 from .pipeline_helpers import handle_gemma_response, print_speaker_info, process_feedback, handle_special_commands
-from tts.tts import OfflineTTSFile
+from program_files.tts.tts_personal import OfflineTTSFile
 
 def load_vosk_model(config=None):
     """Load Vosk model using configuration"""
@@ -161,7 +161,8 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
 
                 <start_of_turn>model"""
 
-        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path, use_vector_context=conversation_manager.config.use_vector_context)
+        #handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path, use_vector_context=conversation_manager.config.use_vector_context)
+        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path, use_vector_context="the user named Brian has just had a conversation with Alexander")
         
         # Return to listening after initial response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Conversation mode active")

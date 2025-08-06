@@ -16,7 +16,7 @@ class SmartModelSelector:
             import sys
             from pathlib import Path
             sys.path.append(str(Path(__file__).parent.parent))
-            from program_files.config.config import cfg
+            from config.config import cfg
             config = cfg.smart_model_selector
             
         self.current_model = None

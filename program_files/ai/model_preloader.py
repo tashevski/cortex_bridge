@@ -12,7 +12,7 @@ class ModelPreloader:
     
     def __init__(self, config: Optional[ModelPreloaderConfig] = None):
         if config is None:
-            from program_files.config.config import cfg
+            from config.config import cfg
             config = cfg.model_preloader
             
         self.base_url = config.base_url

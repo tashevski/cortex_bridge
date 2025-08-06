@@ -4,7 +4,7 @@
 import numpy as np
 import webrtcvad
 from typing import Dict, Optional
-from config.config import SpeechProcessorConfig, SpeakerDetectorConfig
+from program_files.config.config import SpeechProcessorConfig, SpeakerDetectorConfig
 
 
 class SpeechProcessor:

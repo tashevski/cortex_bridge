@@ -39,7 +39,13 @@ def handle_gemma_response(gemma_client, text: str, context: str, conversation_ma
     if response:
         print(f"🤖 Gemma: {response}")
         latency_metrics = gemma_client.get_last_latency_metrics()
-        conversation_manager.add_to_history(response, False, "Gemma", latency_metrics=latency_metrics)
+        
+        # Ensure model information is included
+        model_used = getattr(gemma_client, 'model', 'unknown')
+        if latency_metrics and 'model_used' not in latency_metrics:
+            latency_metrics['model_used'] = model_used
+        
+        conversation_manager.add_to_history(response, False, "Gemma", latency_metrics=latency_metrics, model_used=model_used)
         
         # Convert response to speech using streaming TTS
         if tts_file:

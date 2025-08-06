@@ -6,6 +6,7 @@ import os
 import json
 import pickle
 import numpy as np
+import uuid
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from .db_helpers import create_conversation_id, create_metadata, calculate_analytics, analyze_session
@@ -28,7 +29,7 @@ class EnhancedConversationDB:
                                   role: str, is_gemma_mode: bool, audio_features: Optional[Dict] = None,
                                   feedback: Optional[Dict] = None, conversation_context: Optional[str] = None,
                                   emotion_text: Optional[str] = None, confidence: Optional[float] = None,
-                                  latency_metrics: Optional[Dict] = None):
+                                  latency_metrics: Optional[Dict] = None, model_used: Optional[str] = None):
         """Add conversation with audio features"""
         conversation_id = create_conversation_id(session_id)
         
@@ -37,7 +38,8 @@ class EnhancedConversationDB:
         metadata = create_metadata(
             session_id, speaker, role, audio_features is not None,
             emotion_text=emotion_text, confidence=confidence,
-            feedback=feedback, latency_metrics=latency_metrics
+            feedback=feedback, latency_metrics=latency_metrics,
+            model_used=model_used
         )
         
         self.conversations.add(
@@ -372,3 +374,150 @@ class EnhancedConversationDB:
         except Exception as e:
             print(f"Error searching conversations: {e}")
             return []
+
+    def get_recent_conversations_with_feedback(self, days_back: int = 1) -> Dict[str, Dict]:
+        """Get recent conversations with feedback for cue card updates"""
+        try:
+            cutoff_date = datetime.now() - timedelta(days=days_back)
+            
+            # Get all conversations
+            results = self.conversations.get(include=['metadatas', 'documents'])
+            
+            if not results.get('metadatas'):
+                return {}
+            
+            # Group by session within date range
+            sessions = {}
+            for i, metadata in enumerate(results['metadatas']):
+                timestamp_str = metadata.get('timestamp')
+                if not timestamp_str:
+                    continue
+                
+                try:
+                    # Parse timestamp
+                    conv_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')) if 'T' in timestamp_str else datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                    
+                    # Check if within date range and has Gemma content
+                    if conv_time >= cutoff_date and metadata.get('is_gemma_mode'):
+                        session_id = metadata.get('session_id')
+                        if session_id not in sessions:
+                            sessions[session_id] = []
+                        
+                        sessions[session_id].append({
+                            'id': results['ids'][i],
+                            'text': results['documents'][i],
+                            'metadata': metadata,
+                            'timestamp': conv_time,
+                            'feedback_helpful': metadata.get('feedback_helpful', '')
+                        })
+                except Exception as e:
+                    continue
+            
+            # Build result dictionary for sessions with feedback
+            result_dict = {}
+            for session_id, session_conversations in sessions.items():
+                # Check if session has Gemma conversations
+                has_gemma = any('[GEMMA]' in conv['text'] for conv in session_conversations)
+                if not has_gemma:
+                    continue
+                
+                # Sort by timestamp
+                session_conversations.sort(key=lambda x: x['timestamp'])
+                
+                # Get session feedback
+                session_feedback = None
+                for conv in session_conversations:
+                    if conv['feedback_helpful'] and conv['feedback_helpful'] != 'unknown':
+                        session_feedback = conv['feedback_helpful']
+                        break
+                
+                # Only include sessions with feedback
+                if session_feedback:
+                    # Build conversation text
+                    conversation_lines = []
+                    for conv in session_conversations:
+                        full_text = conv['text']
+                        if ': ' in full_text:
+                            speaker_text = full_text.split(': ', 1)[1]
+                        else:
+                            speaker_text = full_text
+                        speaker_text = speaker_text.replace(' [GEMMA]', '')
+                        speaker = conv['metadata'].get('speaker', 'Unknown')
+                        conversation_lines.append(f"{speaker}: {speaker_text}")
+                    
+                    result_dict[session_id] = {
+                        "session_feedback": session_feedback,
+                        "full_text": "\n".join(conversation_lines),
+                        "timestamp": session_conversations[0]['timestamp'],
+                        "message_count": len(session_conversations),
+                        "is_successful": session_feedback.lower() in ['yes', 'true', 'helpful', '1']
+                    }
+            
+            return result_dict
+        
+        except Exception as e:
+            print(f"Error getting recent conversations: {e}")
+            return {}
+
+    def update_cue_card(self, cue_card_id: str, new_question: str, new_answer: str, update_reason: str = ""):
+        """Update an existing cue card"""
+        try:
+            # Get the existing cue card
+            data = self.conversations.get(ids=[cue_card_id])
+            if not data['metadatas'] or not data['metadatas'][0]:
+                return False
+            
+            metadata = data['metadatas'][0]
+            
+            # Update content and metadata
+            new_content = f"Question: {new_question}\nAnswer: {new_answer}"
+            updated_metadata = metadata.copy()
+            updated_metadata['question'] = new_question
+            updated_metadata['answer'] = new_answer
+            updated_metadata['last_updated'] = datetime.now().isoformat()
+            updated_metadata['update_reason'] = update_reason
+            
+            # Update in database
+            self.conversations.update(
+                ids=[cue_card_id],
+                documents=[new_content],
+                metadatas=[updated_metadata]
+            )
+            
+            return True
+        except Exception as e:
+            print(f"Error updating cue card {cue_card_id}: {e}")
+            return False
+
+    def create_new_cue_card(self, question: str, answer: str, prompt_type: str, source: str = "conversation_update", model_used: str = "unknown"):
+        """Create a new cue card based on conversation insights"""
+        try:
+            doc_id = str(uuid.uuid4())
+            timestamp = datetime.now().isoformat()
+            
+            content = f"Question: {question}\nAnswer: {answer}"
+            metadata = {
+                "document_path": f"conversation_update_{timestamp}",
+                "cue_card_id": doc_id,
+                "prompt_type": prompt_type,
+                "question": question,
+                "answer": answer,
+                "timestamp": timestamp,
+                "content_type": "cue_card",
+                "session_id": f"update_session_{timestamp.replace(':', '-')}",
+                "source": source,
+                "created_from": "conversation_feedback",
+                "model_used": model_used
+            }
+            
+            # Store in database
+            self.conversations.add(
+                documents=[content],
+                metadatas=[metadata],
+                ids=[f"cue_card_{doc_id}"]
+            )
+            
+            return f"cue_card_{doc_id}"
+        except Exception as e:
+            print(f"Error creating new cue card: {e}")
+            return None

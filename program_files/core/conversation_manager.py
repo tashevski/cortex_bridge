@@ -4,16 +4,16 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from collections import deque
-from utils.text_utils import contains_keywords, truncate_history, format_conversation_context
-from database.enhanced_conversation_db import EnhancedConversationDB
-from config.config import ConversationModeConfig
+from program_files.utils.text_utils import contains_keywords, truncate_history, format_conversation_context
+from program_files.database.enhanced_conversation_db import EnhancedConversationDB
+from program_files.config.config import ConversationModeConfig
 
 class ConversationManager:
     """Manages conversation state and history"""
     
     def __init__(self, enable_vector_db: bool = True, config: Optional[ConversationModeConfig] = None):
         if config is None:
-            from config.config import cfg
+            from program_files.config.config import cfg
             config = cfg.conversation_mode
             
         self.config = config
@@ -147,7 +147,7 @@ class ConversationManager:
             }
         }
     
-    def add_to_history(self, text: str, is_user: bool = True, speaker_name: str = None, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None, latency_metrics: Optional[Dict] = None):
+    def add_to_history(self, text: str, is_user: bool = True, speaker_name: str = None, audio_features: Optional[Dict] = None, emotion_text: str = None, confidence: float = None, latency_metrics: Optional[Dict] = None, model_used: Optional[str] = None):
         """Add message to conversation history and enhanced vector database"""
         # Always track emotions for potential triggering
         if is_user and emotion_text and confidence is not None:
@@ -173,7 +173,8 @@ class ConversationManager:
                 conversation_context=self.get_conversation_context(),
                 emotion_text=emotion_text,
                 confidence=confidence,
-                latency_metrics=latency_metrics
+                latency_metrics=latency_metrics,
+                model_used=model_used
             )
     
     def get_conversation_context(self) -> str:

@@ -15,7 +15,7 @@ class OptimizedGemmaClient(GemmaClient):
     
     def __init__(self, config: Optional[GemmaClientConfig] = None):
         if config is None:
-            from program_files.config.config import cfg
+            from config.config import cfg
             config = cfg.gemma_client
             
         super().__init__(config.default_model, config.base_url)

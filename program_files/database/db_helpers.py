@@ -37,6 +37,11 @@ def create_metadata(session_id: str, speaker: str, role: str,
     if 'latency_metrics' in kwargs and kwargs['latency_metrics']:
         add_latency_to_metadata(metadata, kwargs['latency_metrics'])
     
+    # Add model information if provided (for cases where latency_metrics isn't available)
+    if 'model_used' in kwargs and kwargs['model_used']:
+        if 'model_used' not in metadata:  # Don't override if already set by latency metrics
+            metadata['model_used'] = kwargs['model_used']
+    
     return metadata
 
 def add_latency_to_metadata(metadata: Dict, latency_metrics: Dict):
