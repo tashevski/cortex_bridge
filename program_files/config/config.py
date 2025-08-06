@@ -89,6 +89,7 @@ class ConversationModeConfig:
     # Conversation context formatting
     max_context_messages: int = 6  # Max messages in context
     max_history_items: int = 100  # Max items to keep in history
+    use_vector_context = True  # Enable vector context in responses
 
 @dataclass
 class SpeechProcessorConfig:

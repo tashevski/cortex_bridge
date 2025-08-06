@@ -132,7 +132,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
                 question: {prompt}
                 """
         
-        handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file, prompt_template=prompt_template, image_path=image_path)
+        handle_gemma_response(gemma_client, text, context, conversation_manager, tts_file, prompt_template=prompt_template, image_path=image_path, use_vector_context=conversation_manager.config.use_vector_context)
         
         # Return to listening after LLM response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "LLM response complete")
@@ -161,7 +161,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
 
                 <start_of_turn>model"""
 
-        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path)
+        handle_gemma_response(gemma_client, text, "", conversation_manager, tts_file, prompt_template=template, image_path=image_path, use_vector_context=conversation_manager.config.use_vector_context)
         
         # Return to listening after initial response
         adaptive_monitor.set_system_mode(SystemMode.LISTENING, "Conversation mode active")

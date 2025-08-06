@@ -4,9 +4,34 @@
 from typing import Dict, Optional
 import json
 
-def handle_gemma_response(gemma_client, text: str, context: str, conversation_manager, tts_file=None, prompt_template=None, image_path=None):
+def get_vector_context(query: str, conversation_context: str = "", top_k: int = 3) -> Optional[Dict]:
+    """Get relevant vector context from database"""
+    try:
+        from rag_functions.utils.retrieval import search_cue_cards, search_adaptive_prompts
+        
+        # Search for relevant content
+        cue_cards = search_cue_cards(query, top_k=top_k)
+        adaptive_prompts = search_adaptive_prompts(query, top_k=top_k)
+        
+        if not cue_cards and not adaptive_prompts:
+            return None
+        
+        return {
+            "relevant_cue_cards": [{"q": c["metadata"].get("question", ""), "a": c["metadata"].get("answer", "")} for c in cue_cards],
+            "relevant_prompts": [{"issue": p["metadata"].get("medical_issue", ""), "prompt": p["content"]} for p in adaptive_prompts]
+        }
+    except:
+        return None
+
+def handle_gemma_response(gemma_client, text: str, context: str, conversation_manager, tts_file=None, prompt_template=None, image_path=None, use_vector_context=True):
     """Generate and handle Gemma response with latency tracking and TTS"""
-    response = gemma_client.generate_response_optimized(text, context, prompt_template=prompt_template, image_path=image_path)
+    
+    # Get vector context if enabled
+    vector_context = None
+    if use_vector_context:
+        vector_context = get_vector_context(text, context)
+    
+    response = gemma_client.generate_response_optimized(text, context, prompt_template=prompt_template, image_path=image_path, vector_context=vector_context)
     if response:
         print(f"🤖 Gemma: {response}")
         latency_metrics = gemma_client.get_last_latency_metrics()
