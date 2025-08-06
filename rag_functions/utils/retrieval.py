@@ -1,4 +1,5 @@
 import re
+import json
 
 def setup_vector_db(reference_texts, reference_meta=None):
     references = []
@@ -23,3 +24,18 @@ def retrieve_references(reference_store, parsed, k=5):
     
     scored_refs.sort(reverse=True, key=lambda x: x[0])
     return [ref[1] for ref in scored_refs[:k]]
+
+def extract_medical_issues_list(response_text):
+    """Extract medical issues list from LLM response."""
+    try:
+        # Find list pattern and extract items
+        match = re.search(r'\[(.*?)\]', response_text, re.DOTALL)
+        if match:
+            items = [item.strip().strip('"\'') for item in match.group(1).split(',')]
+            return [item for item in items if item]
+        
+        # Fallback: try JSON parsing
+        parsed = json.loads(response_text)
+        return parsed if isinstance(parsed, list) else [response_text.strip()]
+    except:
+        return [response_text.strip()]

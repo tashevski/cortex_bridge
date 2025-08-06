@@ -1,19 +1,57 @@
 from rag_functions.utils.ocr_layout_copy import extract_text_and_layout
 from rag_functions.utils.semantic_parser import parse_document
-from rag_functions.utils.retrieval import setup_vector_db, retrieve_references
-from .llm_analysis import analyze_with_llm
+from rag_functions.utils.retrieval import setup_vector_db, retrieve_references, extract_medical_issues_list
+from .llm_analysis import analyze_with_llm, create_cue_cards
 from rag_functions.templates.prompt_templates import get_template
 from rag_functions.ml.vector_operations import select_optimal_templates, analyze_document_type
 from rag_functions.ml.cue_card_extraction import extract_cue_cards
 from .config import get_config
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
+from ai.gemma_client import GemmaClient
+import re
+import json
+
 
 def process_document(file_path, reference_texts=None, use_medical_templates=True, generate_cue_cards=True, context_type="medical"):
     config = get_config()
     
     # Extract and parse
     txt = extract_text_and_layout(file_path)
-    parsed = parse_document(txt)
+    parsed = parse_document(txt, input_prompt="Extract key entities, topics, and sections from the following document. Provide a structured summary:")
     
+    client = GemmaClient(model="gemma3n:e4b")
+    key_medical_issues_response = client.generate_response("""identify the key medical concerns and likely problems the patient is likely to face given the information provided
+        return your responses in a list of strings like this:
+        [
+            "{medical_concern}",
+            "{medical_concern}",
+            "{medical_concern}"
+        ]
+        """, parsed, timeout=90)
+
+    # Extract the list from the response
+    key_medical_issues = extract_medical_issues_list(key_medical_issues_response)
+
+    adaptive_prompts = []
+    for issue in key_medical_issues:
+        prompt = f"briefly summarise and identify any issues relating to {issue} in the associated conversations, briefly describe what happened and whether it was effective:"
+        print(prompt)
+        adaptive_prompts.append(prompt)
+    
+    individual_relevant_prompts = [
+        "medical and care advice for family",
+        "medical and care advice for medical staff",
+        "medical and care advice for carers",
+        "medical and care advice for allied health workers relevant to the context",
+        "medical and care advice for doctors relevant to the context",
+        ]
+   
+    contextual_response = create_cue_cards(parsed, individual_relevant_prompts)
+
+
+
     # Setup references
     references = []
     if reference_texts:
@@ -31,7 +69,7 @@ def process_document(file_path, reference_texts=None, use_medical_templates=True
     # Analyze
     results = analyze_with_llm(parsed, references, config=config)
     
-    # Generate cue cards
+    # Generate context response advice 
     cue_cards = {}
     if generate_cue_cards:
         if isinstance(results, dict):
@@ -46,3 +84,7 @@ def process_document(file_path, reference_texts=None, use_medical_templates=True
         'template_info': templates[0] if use_medical_templates and templates else None,
         'document_type_scores': analyze_document_type(parsed) if use_medical_templates else None
     }
+
+
+if __name__ == "__main__":
+    process_document("/Users/alexander/Library/CloudStorage/Dropbox/Personal Research/cortex_bridge/paper/bsp_2.pdf")

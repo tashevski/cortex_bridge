@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
+from typing import Optional
 sys.path.append(str(Path(__file__).parent.parent.parent / "program_files"))
 
 from ai.gemma_client import GemmaClient
-from .config import RAGConfig
+from .config import RAGConfig, get_config
 from rag_functions.templates.prompt_templates import get_template
 
 def analyze_with_llm(parsed_entities, reference_chunks=None, prompt: str = None, config: RAGConfig = None):
@@ -125,7 +126,7 @@ def create_cue_cards(parsed_entities, prompt: str, config: Optional[RAGConfig] =
 
             {question}
 
-            Provide a short sharp answer that directly identifies the advise for the problem based on information from the document. 
+            Provide a short sharp answer that directly identifies the advice for the problem based on information from the document. 
             Do not tell me what the document doesn't include, provide a brief answer no more than two sentences which is as useful as possible.
             Return your answer in the following format:
 

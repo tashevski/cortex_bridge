@@ -126,7 +126,7 @@ def process_text(text: str, conversation_manager: ConversationManager, gemma_cli
         context = conversation_manager.get_conversation_context()
 
         if prompt_template is None:
-                prompt_template = """Provide short, concise answers. respond with no more than two sentences.
+                prompt_template = """You are Gemma, a medical medical assistant. Provide short, concise answers.
             
                 conversation: {context}
                 question: {prompt}
